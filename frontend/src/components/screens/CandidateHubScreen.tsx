@@ -1,589 +1,614 @@
 "use client";
 
 import React, { useState } from "react";
+import { useParams } from "next/navigation";
 import {
-  Award,
-  BadgeCheck,
-  BookOpen,
-  Building2,
-  CheckCircle2,
-  FileCheck2,
+  Bell,
+  Download,
+  ExternalLink,
+  FileText,
+  Flag,
   MapPin,
-  MessageSquarePlus,
-  PlayCircle,
-  Quote,
-  Scale,
+  MessageSquareQuote,
+  Play,
   Send,
   ShieldCheck,
   Sparkles,
   ThumbsUp,
+  Users,
   Video,
 } from "lucide-react";
-import {
-  CANDIDATES,
-  SURVEY_TOPICS,
-  VOTER_CONTEXT,
-  VOTING_ORGANIZATIONS,
-} from "@/data/mockCivicData";
-
-function StanceBadge({ stance }: { stance: string }) {
-  const styles: Record<string, string> = {
-    "Strong Support":
-      "bg-emerald-50 text-emerald-800 border-emerald-300 font-bold",
-    "Conditional Support":
-      "bg-amber-50 text-amber-900 border-amber-300 font-semibold",
-    "Phased Approach":
-      "bg-blue-50 text-blue-800 border-blue-200 font-semibold",
-    Opposes: "bg-rose-50 text-rose-800 border-rose-200 font-semibold",
-  };
-
-  return (
-    <span
-      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs border ${
-        styles[stance] || "bg-slate-100 text-slate-800 border-slate-200"
-      }`}
-    >
-      <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-      {stance}
-    </span>
-  );
-}
+import { CANDIDATES, VOTER_CONTEXT } from "@/data/mockCivicData";
 
 export default function CandidateHubScreen({
   compact = false,
+  municipality,
 }: {
   compact?: boolean;
+  municipality?: string;
 }) {
-  const [selectedTopicKey, setSelectedTopicKey] = useState<string>("all");
-  const [activeCandidateId, setActiveCandidateId] = useState<string>("maya-lin");
-  const [directQuestion, setDirectQuestion] = useState<string>("");
-  const [questionSent, setQuestionSent] = useState<boolean>(false);
+  const params = useParams<{ municipality?: string }>();
+  const rawSlug =
+    municipality ||
+    (typeof params?.municipality === "string"
+      ? params.municipality
+      : "toronto_2026");
+
+  const normalizedSlug = rawSlug.includes("_")
+    ? rawSlug.toLowerCase()
+    : `${rawSlug.toLowerCase()}_2026`;
+
+  const [entityPart, yearPart = "2026"] = normalizedSlug.split("_");
+
+  const formattedEntity =
+    entityPart === "toronto"
+      ? "City of Toronto"
+      : entityPart === "ontario"
+      ? "Province of Ontario"
+      : entityPart === "canada"
+      ? "Government of Canada"
+      : entityPart
+          .split("-")
+          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+          .join(" ");
+
+  const formattedMunicipality = `${formattedEntity} (${yearPart})`;
+
+  const [selectedCandidateId, setSelectedCandidateId] =
+    useState<string>("maya-lin");
+  const [pledgedCandidateIds, setPledgedCandidateIds] = useState<
+    Record<string, boolean>
+  >({
+    "maya-lin": true,
+  });
+  const [lawnSignRequestedIds, setLawnSignRequestedIds] = useState<
+    Record<string, boolean>
+  >({
+    "maya-lin": true,
+  });
+  const [subscribedCandidateIds, setSubscribedCandidateIds] = useState<
+    Record<string, boolean>
+  >({
+    "maya-lin": true,
+  });
+  const [questionDraft, setQuestionDraft] = useState<string>("");
+  const [submittedQuestions, setSubmittedQuestions] = useState<
+    Array<{
+      id: string;
+      candidateName: string;
+      question: string;
+      timestamp: string;
+    }>
+  >([]);
 
   const selectedCandidate =
-    CANDIDATES.find((c) => c.id === activeCandidateId) || CANDIDATES[0];
+    CANDIDATES.find((c) => c.id === selectedCandidateId) ?? CANDIDATES[0];
 
-  const visibleTopics =
-    selectedTopicKey === "all"
-      ? SURVEY_TOPICS.slice(0, 2)
-      : SURVEY_TOPICS.filter((t) => t.key === selectedTopicKey);
+  const handleAskQuestion = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!questionDraft.trim()) return;
+    setSubmittedQuestions((prev) => [
+      {
+        id: `q-${Date.now()}`,
+        candidateName: selectedCandidate.name,
+        question: questionDraft.trim(),
+        timestamp: "Just now • Public on Ward 14 Feed",
+      },
+      ...prev,
+    ]);
+    setQuestionDraft("");
+  };
+
+  const orgBadgeStyles = {
+    emerald: "bg-emerald-50 text-emerald-900 border-emerald-200",
+    blue: "bg-blue-50 text-blue-900 border-blue-200",
+    amber: "bg-amber-50 text-amber-900 border-amber-200",
+    purple: "bg-purple-50 text-purple-900 border-purple-200",
+    slate: "bg-slate-100 text-slate-800 border-slate-300",
+  };
 
   return (
     <div className="bg-[#FAF8F5] text-slate-900 min-h-full font-sans selection:bg-blue-600 selection:text-white">
-      {/* Top App Bar */}
+      {/* Top App Header */}
       <header className="bg-white border-b border-slate-200/90 px-5 py-3.5 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-blue-700 flex items-center justify-center text-white font-bold text-sm shadow-xs">
             VS
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-bold tracking-tight text-slate-900 text-base">
-                Vote Social
-              </span>
-              <span className="text-[11px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200 font-semibold">
-                Screen 2 • Candidate & Ballot Intelligence Hub
-              </span>
-            </div>
-            <p className="text-xs text-slate-500">
-              Core Value:{" "}
-              <span className="font-semibold text-slate-700 italic">
-                “Knowledge is power”
-              </span>
-            </p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-bold tracking-tight text-slate-900 text-base">
+              Vote Social
+            </span>
+            <span className="text-[11px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200 font-semibold">
+              /{normalizedSlug}/candidates
+            </span>
           </div>
         </div>
 
         <div className="flex items-center flex-wrap gap-2.5">
           <div className="flex items-center gap-2 bg-slate-900 text-white px-3.5 py-1.5 rounded-full text-xs font-medium">
             <MapPin className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Ballot Race: {VOTER_CONTEXT.wardName} Councillor</span>
+            <span>{formattedMunicipality}</span>
+            <span className="text-slate-400">•</span>
+            <span>{VOTER_CONTEXT.wardName}</span>
+            <span className="text-slate-400">•</span>
+            <span className="font-mono text-emerald-300">
+              {VOTER_CONTEXT.postalCode}
+            </span>
           </div>
-          <span className="text-xs font-mono font-semibold bg-amber-50 text-amber-900 border border-amber-200 px-3 py-1.5 rounded-full">
-            3 Certified Candidates • 100% Survey Completion
-          </span>
         </div>
       </header>
 
-      <div className={`max-w-[1360px] mx-auto ${compact ? "p-4" : "p-5 lg:p-7"} space-y-6`}>
-        {/* SECTION 1: Side-by-Side Platform Comparison Matrix */}
-        <section className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden">
-          <div className="p-5 border-b border-slate-200/80 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 bg-slate-50/60">
-            <div>
-              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-blue-700 mb-1">
-                <Scale className="w-3.5 h-3.5" />
-                <span>Side-by-Side Standardized Survey Matrix</span>
-              </div>
-              <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-                Compare Ward 14 Candidates on Local Issues
-              </h1>
-              <p className="text-xs sm:text-sm text-slate-600 mt-0.5">
-                Every candidate answered identical precinct-vetted policy prompts on housing, complete streets, public safety, and main street taxes.
-              </p>
-            </div>
-
-            {/* Issue Switcher Pills */}
-            <div className="flex items-center flex-wrap gap-1.5">
-              <button
-                type="button"
-                onClick={() => setSelectedTopicKey("all")}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition ${
-                  selectedTopicKey === "all"
-                    ? "bg-slate-900 text-white"
-                    : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
-                }`}
-              >
-                Top 2 Issues (Overview)
-              </button>
-              {SURVEY_TOPICS.map((topic) => (
-                <button
-                  key={topic.key}
-                  type="button"
-                  onClick={() => setSelectedTopicKey(topic.key)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition ${
-                    selectedTopicKey === topic.key
-                      ? "bg-blue-700 text-white"
-                      : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
-                  }`}
-                >
-                  {topic.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Candidate Column Headers */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 border-b border-slate-200">
-            <div className="lg:col-span-3 p-4 bg-slate-50/90 border-b lg:border-b-0 lg:border-r border-slate-200 flex flex-col justify-center">
-              <span className="text-xs font-mono uppercase tracking-wider text-slate-500 font-semibold">
-                Standardized Survey Prompt
-              </span>
-              <p className="text-xs text-slate-600 mt-1">
-                Click any candidate header to inspect their full dossier, voting record, media clips & peer testimonials below.
-              </p>
-            </div>
-
+      <div
+        className={`max-w-[1360px] mx-auto ${
+          compact ? "p-4" : "p-5 lg:p-7"
+        }`}
+      >
+        {/* =====================================================================
+            CANDIDATE CARDS + ZERO-MARGIN CANDIDATE SUMMARY
+            - Each candidate is a card with Issue badges, Organisation badges + Unaffiliated voter# badge
+            - "Your Vote" badge (replaces "Your Pledge")
+            - Zero margin between the candidate cards and the candidate summary container below
+           ===================================================================== */}
+        <section>
+          {/* Candidate Cards Row (Zero bottom margin) */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-0 mb-0 border border-slate-200/90 rounded-t-2xl overflow-hidden bg-slate-100/70 divide-y lg:divide-y-0 lg:divide-x divide-slate-200/90">
             {CANDIDATES.map((candidate) => {
-              const isSelected = candidate.id === activeCandidateId;
+              const isSelected = candidate.id === selectedCandidateId;
               return (
                 <div
                   key={candidate.id}
-                  onClick={() => setActiveCandidateId(candidate.id)}
-                  className={`lg:col-span-3 p-4 border-b lg:border-b-0 lg:border-r last:border-r-0 border-slate-200 cursor-pointer transition ${
+                  onClick={() => setSelectedCandidateId(candidate.id)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      setSelectedCandidateId(candidate.id);
+                    }
+                  }}
+                  className={`p-5 text-left transition cursor-pointer flex flex-col justify-between ${
                     isSelected
-                      ? "bg-blue-50/50 ring-2 ring-inset ring-blue-600/30"
-                      : "bg-white hover:bg-slate-50"
+                      ? "bg-white ring-2 ring-inset ring-blue-600/20"
+                      : "bg-slate-50/70 hover:bg-white/80"
                   }`}
                 >
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <div className="flex items-center gap-2.5">
-                      <div
-                        className={`w-10 h-10 rounded-xl ${candidate.avatarBg} text-white font-bold text-sm flex items-center justify-center shadow-2xs shrink-0`}
-                      >
-                        {candidate.initials}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-1">
-                          <h2 className="font-bold text-sm text-slate-900">
-                            {candidate.name}
-                          </h2>
-                          <BadgeCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <div className="space-y-3.5">
+                    {/* Candidate Identity & "Your Vote" Badge */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`w-11 h-11 rounded-xl ${candidate.avatarBg} text-white font-bold text-sm flex items-center justify-center shadow-xs shrink-0`}
+                        >
+                          {candidate.initials}
                         </div>
-                        <span className="text-[11px] font-mono text-slate-500">
-                          {candidate.pledgeCountInWard.toLocaleString()} Ward Pledges
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <h2 className="font-bold text-base text-slate-900">
+                              {candidate.name}
+                            </h2>
+                            <ShieldCheck
+                              className="w-4 h-4 text-emerald-600 shrink-0"
+                              aria-label="Verified Candidate Identity"
+                            />
+                          </div>
+                          <span className="text-xs text-slate-500 block">
+                            {candidate.roleTitle}
+                          </span>
+                        </div>
+                      </div>
+
+                      {(pledgedCandidateIds[candidate.id] ??
+                        candidate.userPledged) && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-700 text-white shadow-2xs shrink-0">
+                          <Sparkles className="w-3 h-3" />
+                          Your Vote
                         </span>
+                      )}
+                    </div>
+
+                    {/* Issue Badges */}
+                    <div>
+                      <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block mb-1.5">
+                        Key Issues
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {candidate.topIssues.map((issue) => (
+                          <span
+                            key={issue}
+                            className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-slate-100 text-slate-800 border border-slate-200 inline-flex items-center gap-1.5"
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full bg-blue-600 shrink-0" />
+                            <span>{issue}</span>
+                          </span>
+                        ))}
                       </div>
                     </div>
 
-                    {candidate.userPledged && (
-                      <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-blue-700 text-white">
-                        Your Pledge
+                    {/* Organisation Badges + Unaffiliated Voter# Badge */}
+                    <div className="pt-3 border-t border-slate-200/70">
+                      <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block mb-1.5">
+                        Organizations & Unaffiliated Voters
                       </span>
-                    )}
+                      <div className="flex flex-wrap gap-1.5">
+                        {candidate.orgSupports.map((org) => (
+                          <span
+                            key={org.orgId}
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border ${
+                              orgBadgeStyles[org.color]
+                            }`}
+                          >
+                            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                            <span>{org.orgName}</span>
+                            <span className="font-mono font-bold px-1.5 py-0.2 rounded bg-white/80 text-[11px]">
+                              {org.voterCount.toLocaleString()}
+                            </span>
+                          </span>
+                        ))}
+
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 text-slate-800 border border-slate-300">
+                          <Users className="w-3.5 h-3.5 text-slate-600 shrink-0" />
+                          <span>Unaffiliated Voters</span>
+                          <span className="font-mono font-bold px-1.5 py-0.2 rounded bg-white text-slate-900 text-[11px]">
+                            {candidate.independentVotersCount.toLocaleString()}
+                          </span>
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <p className="text-xs text-slate-600 line-clamp-2 mb-2">
-                    {candidate.tagline}
-                  </p>
-                  <div className="flex flex-wrap gap-1">
-                    {candidate.endorsedByOrgs.slice(0, 2).map((org) => (
-                      <span
-                        key={org}
-                        className="text-[10px] font-semibold px-2 py-0.5 rounded bg-amber-50 text-amber-900 border border-amber-200"
-                      >
-                        ★ {org}
-                      </span>
-                    ))}
+
+                  {/* Active Card Indicator Bar */}
+                  <div className="mt-4 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
+                    <span
+                      className={`font-semibold ${
+                        isSelected ? "text-blue-700" : "text-slate-500"
+                      }`}
+                    >
+                      {isSelected
+                        ? "Viewing Candidate Summary Below"
+                        : "Select to View Summary"}
+                    </span>
+                    <span className="font-mono text-[11px] font-bold text-slate-600">
+                      {candidate.pledgeCountInWard.toLocaleString()} Ward Votes
+                    </span>
                   </div>
                 </div>
               );
             })}
           </div>
 
-          {/* Matrix Comparison Rows */}
-          <div className="divide-y divide-slate-200">
-            {visibleTopics.map((topic) => (
-              <div
-                key={topic.key}
-                className="grid grid-cols-1 lg:grid-cols-12 items-stretch"
-              >
-                {/* Prompt Column */}
-                <div className="lg:col-span-3 p-4 bg-slate-50/70 lg:border-r border-slate-200">
-                  <span className="inline-block text-[11px] font-mono font-bold uppercase tracking-wider text-blue-800 bg-blue-100/80 px-2 py-0.5 rounded mb-1.5">
-                    {topic.label}
-                  </span>
-                  <p className="text-xs sm:text-sm font-semibold text-slate-900 leading-snug">
-                    {topic.question}
-                  </p>
-                </div>
-
-                {/* Candidate Response Cells */}
-                {CANDIDATES.map((candidate) => {
-                  const ans = candidate.surveyAnswers[topic.key];
-                  const isSelected = candidate.id === activeCandidateId;
-                  return (
-                    <div
-                      key={candidate.id}
-                      onClick={() => setActiveCandidateId(candidate.id)}
-                      className={`lg:col-span-3 p-4 lg:border-r last:border-r-0 border-slate-200 flex flex-col justify-between cursor-pointer transition ${
-                        isSelected ? "bg-blue-50/20" : "bg-white hover:bg-slate-50/60"
-                      }`}
-                    >
-                      <div>
-                        <div className="mb-2">
-                          <StanceBadge stance={ans.stance} />
-                        </div>
-                        <p className="text-xs font-bold text-slate-900 leading-snug mb-2">
-                          {ans.summary}
-                        </p>
-                      </div>
-                      <blockquote className="text-xs text-slate-600 italic bg-slate-50 p-2.5 rounded-lg border-l-2 border-slate-300">
-                        “{ans.quote}”
-                      </blockquote>
-                    </div>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* SECTION 2: Comprehensive Candidate Profile + Organization Voter Guides + Testimonials & Direct Messaging */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* Left 7 Cols: Comprehensive Candidate Profile Dossier (Bio/CV, Voting Record, Media Clips) */}
-          <div className="lg:col-span-7 bg-white rounded-2xl border border-slate-200/90 p-5 shadow-2xs space-y-5">
-            <div className="flex flex-wrap items-start justify-between gap-4 pb-4 border-b border-slate-100">
-              <div className="flex items-center gap-3.5">
+          {/* =====================================================================
+              ZERO-MARGIN CANDIDATE SUMMARY CONTAINER
+              - Left 7 cols: Candidate Files, Council & Committee Record, Media
+              - Right 5 cols: Peer Voter Testimonials & Direct Q&A shifted up
+             ===================================================================== */}
+          <div className="mt-0 bg-white rounded-b-2xl border border-t-0 border-slate-200/90 p-5 lg:p-6 shadow-2xs">
+            {/* Candidate Summary Top Bar + Row of CTAs under Tagline */}
+            <div className="pb-5 mb-5 border-b border-slate-200/80">
+              <div className="flex items-start gap-3.5">
                 <div
-                  className={`w-14 h-14 rounded-2xl ${selectedCandidate.avatarBg} text-white font-bold text-lg flex items-center justify-center shadow-xs`}
+                  className={`w-13 h-13 rounded-2xl ${selectedCandidate.avatarBg} text-white font-bold text-lg flex items-center justify-center shadow-xs shrink-0`}
                 >
                   {selectedCandidate.initials}
                 </div>
-                <div>
+                <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs font-mono uppercase tracking-wider text-blue-700 font-bold">
-                      Comprehensive Candidate Profile
-                    </span>
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                      <BadgeCheck className="w-3.5 h-3.5 text-emerald-600" />
-                      Identity & Domain Verified
+                    <h2 className="text-lg sm:text-xl font-bold text-slate-900">
+                      {selectedCandidate.name}
+                    </h2>
+                    <ShieldCheck
+                      className="w-4 h-4 text-emerald-600 shrink-0"
+                      aria-label="Verified Candidate Identity"
+                    />
+                    <span className="text-xs font-mono text-slate-500">
+                      {selectedCandidate.roleTitle} •{" "}
+                      {selectedCandidate.wardOrDistrict}
                     </span>
                   </div>
-                  <h2 className="text-xl font-bold text-slate-900">
-                    {selectedCandidate.name} — {selectedCandidate.wardOrDistrict}
-                  </h2>
-                  <p className="text-xs text-slate-600 mt-0.5">
-                    {selectedCandidate.bioSummary}
+                  <p className="text-xs sm:text-sm text-slate-600 mt-0.5">
+                    {selectedCandidate.tagline}
                   </p>
-                </div>
-              </div>
 
-              {/* Quick Switcher */}
-              <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl">
-                {CANDIDATES.map((c) => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    onClick={() => setActiveCandidateId(c.id)}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
-                      c.id === activeCandidateId
-                        ? "bg-white text-slate-900 shadow-2xs"
-                        : "text-slate-600 hover:text-slate-900"
-                    }`}
-                  >
-                    {c.name}
-                  </button>
-                ))}
+                  {/* Row of Candidate CTAs under Tagline */}
+                  <div className="flex flex-wrap items-center gap-2 mt-3">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setPledgedCandidateIds((prev) => ({
+                          ...prev,
+                          [selectedCandidate.id]: !prev[selectedCandidate.id],
+                        }))
+                      }
+                      className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                        pledgedCandidateIds[selectedCandidate.id]
+                          ? "bg-blue-700 text-white shadow-xs"
+                          : "bg-slate-900 text-white hover:bg-blue-700"
+                      }`}
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>
+                        {pledgedCandidateIds[selectedCandidate.id]
+                          ? "Support Pledged (Your Vote)"
+                          : "Pledge your support"}
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setLawnSignRequestedIds((prev) => ({
+                          ...prev,
+                          [selectedCandidate.id]: !prev[selectedCandidate.id],
+                        }))
+                      }
+                      className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold border transition cursor-pointer ${
+                        lawnSignRequestedIds[selectedCandidate.id]
+                          ? "bg-emerald-50 text-emerald-900 border-emerald-300"
+                          : "bg-white text-slate-800 border-slate-300 hover:border-blue-400 hover:text-blue-700"
+                      }`}
+                    >
+                      <Flag className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>
+                        {lawnSignRequestedIds[selectedCandidate.id]
+                          ? "Lawn Sign Requested"
+                          : "Lawn Sign Request"}
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setSubscribedCandidateIds((prev) => ({
+                          ...prev,
+                          [selectedCandidate.id]: !prev[selectedCandidate.id],
+                        }))
+                      }
+                      className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold border transition cursor-pointer ${
+                        subscribedCandidateIds[selectedCandidate.id]
+                          ? "bg-blue-50 text-blue-900 border-blue-200"
+                          : "bg-white text-slate-700 border-slate-300 hover:border-slate-400"
+                      }`}
+                    >
+                      <Bell className="w-3.5 h-3.5 text-blue-600" />
+                      <span>
+                        {subscribedCandidateIds[selectedCandidate.id]
+                          ? "Subscribed to Updates"
+                          : "Subscribe to Updates"}
+                      </span>
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Bio / Civic CV & Credentials + Voting Record Side-by-Side */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Civic CV */}
-              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
-                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-800 mb-2.5">
-                  <BookOpen className="w-4 h-4 text-blue-700" />
-                  <span>Verified Bio & Civic CV</span>
-                </div>
-                <ul className="space-y-2 text-xs text-slate-700">
-                  {selectedCandidate.credentials.map((cred) => (
-                    <li key={cred} className="flex items-start gap-2">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-blue-600 shrink-0 mt-0.5" />
-                      <span>{cred}</span>
-                    </li>
-                  ))}
-                </ul>
-                <div className="mt-3 pt-3 border-t border-slate-200/70">
-                  <span className="text-[11px] font-semibold text-slate-500 block mb-1.5">
-                    Endorsed By Local Voting Blocks:
-                  </span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {selectedCandidate.endorsedByOrgs.map((org) => (
-                      <span
-                        key={org}
-                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-amber-100/80 text-amber-900 border border-amber-300"
+            {/* 2-Column Candidate Summary Content (Files/Record/Media + Shifted-Up Testimonials/Q&A) */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              {/* LEFT 7 COLUMNS: Candidate Files, Council & Committee Record, Media */}
+              <div className="lg:col-span-7 space-y-5">
+                {/* Candidate Files (User-Generated Filenames) */}
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                      <FileText className="w-3.5 h-3.5 text-blue-700" />
+                      <span>Files</span>
+                    </h3>
+                    <span className="text-[11px] font-mono text-slate-500">
+                      {selectedCandidate.files.length} Candidate Documents
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {selectedCandidate.files.map((file) => (
+                      <div
+                        key={file.id}
+                        className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 hover:border-blue-300 hover:bg-blue-50/30 transition flex items-center justify-between gap-2.5 cursor-pointer group"
                       >
-                        <Award className="w-3 h-3" /> {org}
-                      </span>
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-blue-700 shrink-0">
+                            <FileText className="w-4 h-4" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-mono text-xs font-bold text-slate-900 truncate group-hover:text-blue-700">
+                              {file.fileName}
+                            </p>
+                            <span className="text-[11px] text-slate-500 font-mono">
+                              {file.size} • {file.uploadedAt}
+                            </span>
+                          </div>
+                        </div>
+                        <Download className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-700 shrink-0" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Official Voting / Civic Record */}
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                      Council & Committee Record
+                    </h3>
+                    <span className="text-[11px] font-mono text-slate-500">
+                      Verified Clerk Roll-Call Log
+                    </span>
+                  </div>
+
+                  <div className="space-y-2">
+                    {selectedCandidate.votingRecord.map((rec) => (
+                      <div
+                        key={rec.code}
+                        className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between gap-3"
+                      >
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-[11px] font-bold px-2 py-0.5 rounded bg-white border border-slate-200 text-slate-800">
+                              {rec.code}
+                            </span>
+                            <span className="text-xs text-slate-500 font-mono">
+                              {rec.date}
+                            </span>
+                          </div>
+                          <p className="text-xs sm:text-sm font-bold text-slate-900 mt-1">
+                            {rec.title}
+                          </p>
+                          <p className="text-xs text-slate-600">{rec.outcome}</p>
+                        </div>
+                        <span className="px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-emerald-100 text-emerald-900 border border-emerald-300 shrink-0">
+                          {rec.vote}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Media */}
+                <div className="space-y-2.5">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                    <Video className="w-3.5 h-3.5 text-blue-700" />
+                    <span>Media</span>
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {selectedCandidate.mediaClips.map((clip) => (
+                      <div
+                        key={clip.id}
+                        className="p-3.5 rounded-xl bg-slate-900 text-white flex flex-col justify-between gap-2 group cursor-pointer hover:bg-slate-800 transition"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="text-[11px] font-mono text-emerald-300 bg-white/10 px-2 py-0.5 rounded">
+                            {clip.source} • {clip.duration}
+                          </span>
+                          <span className="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center group-hover:scale-105 transition shrink-0">
+                            <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
+                          </span>
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-xs sm:text-sm leading-snug mb-1">
+                            {clip.title}
+                          </h4>
+                          <p className="text-xs text-slate-300 italic line-clamp-2">
+                            {clip.quoteSnippet}
+                          </p>
+                        </div>
+                      </div>
                     ))}
                   </div>
                 </div>
               </div>
 
-              {/* Public Voting & Deputation Record */}
-              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
-                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-800 mb-2.5">
-                  <FileCheck2 className="w-4 h-4 text-emerald-700" />
-                  <span>Council & Committee Record</span>
+              {/* RIGHT 5 COLUMNS: Peer Voter Testimonials & Direct Q&A (Shifted Up) */}
+              <div className="lg:col-span-5 bg-slate-50/70 rounded-xl border border-slate-200/80 p-4 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-[11px] font-mono uppercase tracking-wider text-blue-700 font-bold block">
+                      Neighbor Social Proof
+                    </span>
+                    <h3 className="text-base font-bold text-slate-900">
+                      Peer Voter Testimonials & Direct Q&A
+                    </h3>
+                  </div>
+                  <MessageSquareQuote className="w-5 h-5 text-blue-700 shrink-0" />
                 </div>
-                <div className="space-y-2.5">
-                  {selectedCandidate.votingRecord.map((rec) => (
+
+                {/* Verified Neighbor Testimonials */}
+                <div className="space-y-3">
+                  {selectedCandidate.testimonials.map((t) => (
                     <div
-                      key={rec.code}
-                      className="bg-white p-2.5 rounded-lg border border-slate-200/90 text-xs"
+                      key={t.id}
+                      className="p-3.5 rounded-xl bg-white border border-slate-200/80 space-y-2 shadow-2xs"
                     >
-                      <div className="flex items-center justify-between gap-2 mb-0.5">
-                        <span className="font-mono font-bold text-[11px] text-slate-500">
-                          {rec.code} • {rec.date}
-                        </span>
-                        <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-100 text-emerald-900">
-                          RECORD: {rec.vote}
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-full bg-blue-900 text-white text-xs font-bold flex items-center justify-center">
+                            {t.voterInitials}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-xs font-bold text-slate-900">
+                                {t.voterName}
+                              </span>
+                              <ShieldCheck
+                                className="w-3.5 h-3.5 text-emerald-600 shrink-0"
+                                aria-label="Verified Neighbor Identity"
+                              />
+                            </div>
+                            <span className="text-[11px] text-slate-500 block">
+                              {t.relationship} •{" "}
+                              <span className="font-mono">{t.postalCode}</span>
+                            </span>
+                          </div>
+                        </div>
+                        <span className="inline-flex items-center gap-1 text-xs font-mono font-bold text-slate-700 bg-slate-50 px-2 py-0.5 rounded border border-slate-200">
+                          <ThumbsUp className="w-3 h-3 text-blue-600" />
+                          {t.upvotes}
                         </span>
                       </div>
-                      <p className="font-semibold text-slate-900 leading-snug">
-                        {rec.title}
-                      </p>
-                      <p className="text-[11px] text-slate-500 mt-0.5">
-                        {rec.outcome}
+
+                      <p className="text-xs sm:text-sm text-slate-700 leading-relaxed">
+                        “{t.quote}”
                       </p>
                     </div>
                   ))}
                 </div>
-              </div>
-            </div>
 
-            {/* Verified Media Clips */}
-            <div>
-              <div className="flex items-center justify-between mb-2.5">
-                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-800">
-                  <Video className="w-4 h-4 text-blue-700" />
-                  <span>Verified Town Hall & Debate Media Clips</span>
-                </div>
-                <span className="text-[11px] text-slate-500">
-                  Transcript-indexed • Unedited civic recordings
-                </span>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {selectedCandidate.mediaClips.map((clip) => (
-                  <div
-                    key={clip.id}
-                    className="group p-3.5 rounded-xl border border-slate-200 bg-slate-900 text-white flex flex-col justify-between hover:border-blue-400 transition cursor-pointer"
-                  >
-                    <div>
-                      <div className="flex items-center justify-between gap-2 text-[11px] text-slate-300 mb-2">
-                        <span className="inline-flex items-center gap-1 font-semibold text-emerald-400">
-                          <PlayCircle className="w-4 h-4" />
-                          {clip.source}
-                        </span>
-                        <span className="font-mono bg-slate-800 px-2 py-0.5 rounded text-white">
-                          {clip.duration}
-                        </span>
-                      </div>
-                      <h4 className="font-bold text-xs sm:text-sm text-white leading-snug mb-1.5">
-                        {clip.title}
-                      </h4>
-                      <p className="text-xs text-slate-300 italic">
-                        {clip.quoteSnippet}
-                      </p>
-                    </div>
-                    <div className="mt-3 pt-2 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
-                      <span>Recorded {clip.date}</span>
-                      <span className="text-blue-300 font-semibold group-hover:underline">
-                        Watch + Transcript →
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Right 5 Cols: Organization Voter Guides + Peer Testimonials & Direct Candidate Messaging */}
-          <div className="lg:col-span-5 space-y-5">
-            {/* Organization Voter Guides & Slates */}
-            <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-2xs">
-              <div className="flex items-center justify-between mb-1">
-                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-amber-800">
-                  <Building2 className="w-4 h-4 text-amber-600" />
-                  <span>Organization Voter Guides & Slates</span>
-                </div>
-                <span className="text-[11px] font-mono bg-amber-50 text-amber-900 border border-amber-200 px-2 py-0.5 rounded font-semibold">
-                  DNS TXT Verified Orgs
-                </span>
-              </div>
-              <p className="text-xs text-slate-600 mb-3.5">
-                Compare curated endorsements from trusted local advocacy blocks and subscribe to their ballot updates.
-              </p>
-
-              <div className="space-y-3">
-                {VOTING_ORGANIZATIONS.map((org) => (
-                  <div
-                    key={org.id}
-                    className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/90 hover:border-slate-300 transition"
-                  >
-                    <div className="flex items-start justify-between gap-2 mb-1.5">
-                      <div>
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-bold text-sm text-slate-900">
-                            {org.name}
-                          </span>
-                          <ShieldCheck className="w-4 h-4 text-blue-600 shrink-0" />
-                        </div>
-                        <span className="text-[11px] font-mono text-slate-500">
-                          {org.verifiedDomain} • {org.subscriberCount.toLocaleString()} Subscribers
-                        </span>
-                      </div>
-                      <span className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-amber-100 text-amber-950 border border-amber-300 shrink-0">
-                        Slate: {org.endorsedCandidateName.split("•")[0]}
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-700 leading-relaxed mb-2">
-                      {org.slateSummary}
-                    </p>
-                    <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-200/70">
-                      <div className="flex flex-wrap gap-1">
-                        {org.keyPriorities.map((kp) => (
-                          <span
-                            key={kp}
-                            className="text-[10px] font-medium bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-600"
-                          >
-                            {kp}
-                          </span>
-                        ))}
-                      </div>
-                      <span className="text-xs font-semibold text-blue-700 cursor-pointer hover:underline">
-                        Pledge Block Slate →
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Direct Candidate Messaging & Authentic Peer Testimonials */}
-            <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-2xs">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-blue-700">
-                  <Quote className="w-4 h-4" />
-                  <span>Peer Voter Testimonials & Direct Q&A</span>
-                </div>
-                <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-                  Postal-Verified Neighbors
-                </span>
-              </div>
-
-              <div className="space-y-3 mb-4">
-                {selectedCandidate.testimonials.map((t) => (
-                  <div
-                    key={t.id}
-                    className="p-3.5 rounded-xl bg-blue-50/40 border border-blue-200/80"
-                  >
-                    <div className="flex items-center justify-between gap-2 mb-1.5">
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-full bg-blue-800 text-white text-xs font-bold flex items-center justify-center">
-                          {t.voterInitials}
-                        </div>
-                        <div>
-                          <span className="font-bold text-xs text-slate-900 block">
-                            {t.voterName}{" "}
-                            <span className="font-mono font-normal text-slate-500">
-                              ({t.postalCode})
-                            </span>
-                          </span>
-                          <span className="text-[11px] text-blue-800 font-medium">
-                            {t.relationship}
-                          </span>
-                        </div>
-                      </div>
-                      <span className="inline-flex items-center gap-1 text-xs font-mono font-bold text-slate-700 bg-white px-2 py-0.5 rounded border border-slate-200">
-                        <ThumbsUp className="w-3 h-3 text-blue-600" /> {t.upvotes}
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-700 leading-relaxed italic">
-                      “{t.quote}”
-                    </p>
-                  </div>
-                ))}
-              </div>
-
-              {/* Direct Message Candidate Composer */}
-              <div className="p-3.5 rounded-xl bg-slate-900 text-white">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-bold inline-flex items-center gap-1.5 text-emerald-400">
-                    <MessageSquarePlus className="w-4 h-4" />
-                    Direct Message {selectedCandidate.name}’s Campaign
-                  </span>
-                  <span className="text-[11px] font-mono text-slate-400">
-                    Avg reply: &lt; 4 hrs
-                  </span>
-                </div>
-                {questionSent ? (
-                  <div className="p-2.5 rounded-lg bg-emerald-950/90 border border-emerald-700 text-xs text-emerald-200 flex items-center justify-between">
-                    <span>
-                      ✓ Question delivered to {selectedCandidate.name} with your verified M4K constituent badge.
+                {/* Submitted Questions List */}
+                {submittedQuestions.length > 0 && (
+                  <div className="space-y-2 pt-2 border-t border-slate-200/80">
+                    <span className="text-[11px] font-mono uppercase tracking-wider text-emerald-700 font-bold block">
+                      Your Public Questions Sent
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setQuestionSent(false);
-                        setDirectQuestion("");
-                      }}
-                      className="underline ml-2 font-semibold"
-                    >
-                      Send another
-                    </button>
+                    {submittedQuestions.map((q) => (
+                      <div
+                        key={q.id}
+                        className="p-3 rounded-xl bg-blue-50 border border-blue-200 text-xs space-y-1"
+                      >
+                        <div className="flex items-center justify-between text-[11px] text-blue-800 font-semibold">
+                          <span>To: {q.candidateName}</span>
+                          <span>{q.timestamp}</span>
+                        </div>
+                        <p className="text-slate-900 font-medium">
+                          “{q.question}”
+                        </p>
+                      </div>
+                    ))}
                   </div>
-                ) : (
+                )}
+
+                {/* Ask Candidate Form */}
+                <form
+                  onSubmit={handleAskQuestion}
+                  className="pt-3 border-t border-slate-200/80 space-y-2"
+                >
+                  <label className="block text-xs font-bold text-slate-800">
+                    Ask {selectedCandidate.name} a On-The-Record Question
+                  </label>
                   <div className="flex gap-2">
                     <input
                       type="text"
-                      value={directQuestion}
-                      onChange={(e) => setDirectQuestion(e.target.value)}
-                      placeholder={`Ask ${selectedCandidate.name} a question or leave a constituent note...`}
-                      className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder:text-slate-400 focus:outline-none focus:border-blue-400"
+                      value={questionDraft}
+                      onChange={(e) => setQuestionDraft(e.target.value)}
+                      placeholder={`Ask ${selectedCandidate.name} about Ward 14...`}
+                      className="flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600"
                     />
                     <button
-                      type="button"
-                      onClick={() => setQuestionSent(true)}
-                      className="px-3.5 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold inline-flex items-center gap-1.5 shrink-0 transition"
+                      type="submit"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-700 text-white text-xs font-bold hover:bg-blue-800 transition cursor-pointer shrink-0"
                     >
                       <Send className="w-3.5 h-3.5" />
                       <span>Ask</span>
                     </button>
                   </div>
-                )}
+                  <div className="flex items-center justify-between text-[11px] text-slate-500">
+                    <span>
+                      Verified responses appear in the Ward 14 Summary Feed.
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-blue-700 font-semibold">
+                      Public Q&A Log <ExternalLink className="w-3 h-3" />
+                    </span>
+                  </div>
+                </form>
               </div>
             </div>
           </div>
-        </div>
+        </section>
       </div>
     </div>
   );

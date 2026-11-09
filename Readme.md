@@ -110,38 +110,39 @@ To make multi-tier federalism intuitive and allow voters to connect with relevan
 2. **`POLICY` (Fixed Governance Scope — "Slice of the Federalist Pie")**:
    - Fixed to a specific governance tier (`Municipal` / `Regional` / `Provincial` / `Federal`) and jurisdiction (e.g., *City of Toronto*, *Province of Ontario*, *Government of Canada*).
    - Policies tag Issues (`ISSUE 1 ── * POLICY`). While similar policies may exist across different municipalities or provinces, users only ever see `POLICY` records within their verified jurisdictional slice.
-   - In the **Election Summary (`/<municipality>/summary`)** and **Election Center** views, selecting a level of government automatically filters to the subset of global **Issues** that have active **Policies** attached at that tier of governance.
+   - In the **Election Summary (`/<toronto|ontario|canada>_<year>/summary`)** and **Election Center** views, the election URL scopes the view to the subset of global **Issues** that have active **Policies** attached at that tier of governance.
 
 ### 1. Entity Relationship Diagram (ERD)
 
-The data model connects geographic divisions (municipalities, postal codes, polling subdivisions) and the `ISSUE` $\rightarrow$ `POLICY` hierarchy to election cycles, candidates, voting blocks/organizations, and voter participation primitives.
+The data model connects Canadian postal codes (`POSTAL_ZONE`) to multi-tier political boundaries (`ELECTION_SET` — Municipal Ward, Provincial Electoral District, and Federal Electoral District resolved via the OpenNorth Represent API). Because a postal code can overlap multiple districts at a given governance tier, users confirm their exact `ELECTION_SET` memberships (`USER_ELECTION_MEMBERSHIP`) during profile setup. A sparse `ELECTION_SET` collection (`electionSets/{setId}`) is dynamically created and maintained in Firestore with live `pending_user_count` counters (`count > 0`) as users join the waitlist.
 
 ```mermaid
 erDiagram
-    MUNICIPALITY ||--o{ POSTAL_ZONE : "contains"
-    MUNICIPALITY ||--o{ POLLING_SUBDIVISION : "divides_into"
-    POSTAL_ZONE }o--|| POLLING_SUBDIVISION : "maps_to"
+    POSTAL_ZONE }o--o{ ELECTION_SET : "resolves_candidates_via_opennorth"
+    USER ||--o{ USER_ELECTION_MEMBERSHIP : "confirms_on_profile"
+    ELECTION_SET ||--o{ USER_ELECTION_MEMBERSHIP : "tracks_sparse_waitlist_count"
+    ELECTION_SET ||--o{ POLLING_SUBDIVISION : "divides_into"
     POLLING_SUBDIVISION ||--|| POLLING_STATION : "assigned_to"
 
     ISSUE ||--o{ POLICY : "tags_one_to_many"
-    MUNICIPALITY ||--o{ POLICY : "scopes_local_slice"
+    ELECTION_SET ||--o{ POLICY : "scopes_local_slice"
     ELECTION_RACE ||--o{ POLICY : "debates_at_tier"
     ISSUE ||--o{ USER_ISSUE_PREFERENCE : "weighted_by"
     USER ||--o{ USER_ISSUE_PREFERENCE : "configures"
 
     ELECTION_CYCLE ||--o{ ELECTION_RACE : "includes"
-    MUNICIPALITY ||--o{ ELECTION_RACE : "hosts"
+    ELECTION_SET ||--o{ ELECTION_RACE : "hosts_at_boundary"
     ELECTION_RACE ||--o{ CANDIDATE_PROFILE : "contested_by"
-    POLICY ||--o{ SURVEY_QUESTION : "standardizes"
     ELECTION_RACE ||--o{ CIVIC_EVENT : "schedules"
 
     USER ||--o| CANDIDATE_PROFILE : "claims_and_manages"
     USER }o--o{ VOTING_ORGANIZATION : "administers"
-    USER }o--|| POSTAL_ZONE : "verified_in"
+    USER }o--|| POSTAL_ZONE : "enters_on_waitlist"
 
-    CANDIDATE_PROFILE ||--o{ SURVEY_ANSWER : "submits"
-    SURVEY_QUESTION ||--o{ SURVEY_ANSWER : "answered_by"
-    CANDIDATE_PROFILE ||--o{ MEDIA_CLIP : "publishes"
+    %% Candidate <-> Policy Junction Table & Candidate Files
+    CANDIDATE_PROFILE ||--o{ CANDIDATE_POLICY : "takes_stance_on"
+    POLICY ||--o{ CANDIDATE_POLICY : "evaluated_by"
+    CANDIDATE_PROFILE ||--o{ FILE : "has_many"
     CANDIDATE_PROFILE ||--o{ VOTING_RECORD : "has_history"
 
     VOTING_ORGANIZATION ||--o{ ORG_ENDORSEMENT : "publishes_slate"
@@ -157,20 +158,47 @@ erDiagram
     USER ||--o{ TESTIMONIAL : "writes"
     CANDIDATE_PROFILE ||--o{ TESTIMONIAL : "featured_on"
 
-    ISSUE ||--o{ FORUM_THREAD : "categorizes"
-    POLICY ||--o{ FORUM_THREAD : "grounds_in_jurisdiction"
-    POLLING_SUBDIVISION ||--o{ FORUM_THREAD : "scopes"
-    USER ||--o{ FORUM_THREAD : "authors"
-    FORUM_THREAD ||--o{ FORUM_REPLY : "contains"
-    USER ||--o{ FORUM_REPLY : "posts"
-    CANDIDATE_PROFILE ||--o{ FORUM_REPLY : "answers_officially"
+    %% Candidates, Issues, Policies, and Organizations all have many Posts
+    CANDIDATE_PROFILE ||--o{ POST : "has_many"
+    ISSUE ||--o{ POST : "has_many"
+    POLICY ||--o{ POST : "has_many"
+    VOTING_ORGANIZATION ||--o{ POST : "has_many"
+    ELECTION_SET ||--o{ POST : "scopes"
+    USER ||--o{ POST : "authors"
+
+    POST ||--o{ POST_REPLY : "contains"
+    USER ||--o{ POST_REPLY : "authors"
+    CANDIDATE_PROFILE ||--o{ POST_REPLY : "answers_officially"
+
+    POST ||--o{ POST_VOTE : "ranked_by"
+    USER ||--o{ POST_VOTE : "upvotes"
     ISSUE ||--o{ ISSUE_VOTE : "ranked_by"
     USER ||--o{ ISSUE_VOTE : "votes_on"
 
     USER ||--o{ SUBSCRIPTION : "opts_into"
     CANDIDATE_PROFILE ||--o{ SUBSCRIPTION : "notifies"
     VOTING_ORGANIZATION ||--o{ SUBSCRIPTION : "broadcasts_to"
-    FORUM_THREAD ||--o{ SUBSCRIPTION : "alerts"
+    POST ||--o{ SUBSCRIPTION : "alerts"
+
+    ELECTION_SET {
+        string id PK "Deterministic slug from OpenNorth boundary URL"
+        string open_north_url "e.g. /boundaries/kitchener-wards/ward-10/"
+        string name "e.g. Ward 10 | Kitchener Centre"
+        string boundary_set_name "e.g. Kitchener ward | Ontario electoral district"
+        string tier "municipal | provincial | federal"
+        string external_id "nullable"
+        string city "nullable"
+        string province "nullable"
+        int pending_user_count "Sparse waitlist counter (>0 rendered)"
+        timestamp updated_at
+    }
+
+    USER_ELECTION_MEMBERSHIP {
+        string user_id FK
+        string election_set_id FK
+        string tier "municipal | provincial | federal"
+        timestamp confirmed_at
+    }
 
     ISSUE {
         uuid id PK
@@ -185,19 +213,48 @@ erDiagram
         uuid id PK
         uuid issue_id FK "Tags parent global Issue"
         string governance_tier "Regional | Councilor | Mayoral | Provincial | Federal"
-        string jurisdiction_id "Scoped to user federalist slice"
+        string election_set_id FK "Scoped to user federalist slice"
         string code
         string title
         string summary
     }
 
-    USER {
+    CANDIDATE_POLICY {
         uuid id PK
+        uuid candidate_profile_id FK
+        uuid policy_id FK
+        string stance "Strong Support | Conditional Support | Phased Approach | Opposes"
+        string summary_rationale
+        string direct_quote
+        boolean is_key_plank
+    }
+
+    FILE {
+        uuid id PK
+        uuid candidate_profile_id FK
+        string file_type "bio_cv | platform_doc | media_clip | disclosure"
+        string title
+        string mime_type
+        string url
+        timestamp uploaded_at
+    }
+
+    USER {
+        string uid PK
         string email
-        string full_name
-        string postal_code FK
-        string verification_tier "email | geo_ip | id_verified | dns_admin"
-        string active_pledge_badge
+        string first_name
+        string last_name
+        string postcode
+        string city
+        string province
+        string_array election_set_ids "Confirmed Municipal, Provincial, Federal IDs"
+        boolean is_candidate
+        string candidate_election "nullable"
+        boolean is_org_representative
+        string organization_name "nullable"
+        boolean is_journalist
+        string published_article_url "nullable"
+        boolean profileComplete
     }
 
     CANDIDATE_PROFILE {
@@ -205,7 +262,6 @@ erDiagram
         uuid election_race_id FK
         uuid claimed_by_user_id FK "nullable for unmanaged pages"
         string name
-        string bio_cv
         string platform_summary
         string verified_domain
         int independent_voter_count
@@ -224,18 +280,23 @@ erDiagram
     ELECTION_RACE {
         uuid id PK
         uuid election_cycle_id FK
+        string election_set_id FK
         string tier "Regional | Councilor | Mayoral | Provincial | Federal"
         string district_name
         date election_date
     }
 
-    FORUM_THREAD {
+    POST {
         uuid id PK
-        uuid issue_id FK
-        uuid policy_id FK
-        uuid subdivision_id FK
         uuid author_user_id FK
+        uuid candidate_profile_id FK "nullable"
+        uuid issue_id FK "nullable"
+        uuid policy_id FK "nullable"
+        uuid organization_id FK "nullable"
+        string election_set_id FK "nullable"
         string title
+        string content
+        boolean is_pinned
         int vote_score
         timestamp recent_activity_at
     }
@@ -245,41 +306,41 @@ erDiagram
 
 ### 2. Sitemap & User Actions
 
-The sitemap below outlines the navigation hierarchy from the Stage 1 Waitlist through the 3 core product hubs and role-specific actions for **Voters**, **Candidates**, and **Voting Blocks / Organizations**.
+The sitemap below outlines the navigation hierarchy from the Stage 1 Waitlist (3-step registration + OpenNorth boundary disambiguation + live sparse `electionSets` counters) through the 3 core product hubs and role-specific actions for **Voters**, **Candidates**, and **Voting Blocks / Organizations**.
 
 ```mermaid
 flowchart TD
     subgraph Public["Public & Stage 1 Waitlist"]
-        Landing["/ — Waitlist Landing Page"]
-        ActWaitlist["Action: Select Role, Enter Postal Code + Email"]
-        AuthVerify["/onboarding — Geo/IP, Email & Postal Verification"]
-        Landing --> ActWaitlist
-        ActWaitlist --> AuthVerify
+        Landing["/ — Waitlist Landing Page (Step 1: Email Capture + Active ElectionSet Counters)"]
+        Register["/register — Step 2: Password or Google OAuth + /verify-email"]
+        ProfileSetup["/profile — Step 3: Name, Postcode -> OpenNorth Boundary Disambiguation & Role Flags"]
+        ElectionSetsCounter["Firestore: Sparse electionSets/{setId} (Maintained on profile save, filtered by count > 0)"]
+        Landing --> Register
+        Register --> ProfileSetup
+        ProfileSetup --> ElectionSetsCounter
     end
 
     subgraph CoreApp["Core Civic Application (Scoped by Federalist Slice & Postal Code)"]
         direction TB
 
-        subgraph Screen1["1. Election Summary & Issue Feed (/<municipality>/summary)"]
-            CandidateRow["Top Row: Candidate Summary Cards (Key Issues, Org Supports + Voter Counts, Independent Voters Badge)"]
-            IssueActivityFeed["Left Column: Searchable Feed of Issues by Recent Activity & Scoped Policies"]
+        subgraph Screen1["1. Election Summary & Issue Feed (/<toronto|ontario|canada>_<year>/summary)"]
+            CandidateRow["Top Row: Candidate Summary Cards (Links to /candidates, Key Issues, Org Supports + Voter Counts, Unaffiliated Voters Badge)"]
+            IssueActivityFeed["Left Column: Searchable Feed of Issues by Recent Activity & Policies"]
             TopIssuesByVote["Right Column: Simplified Top Issues by Vote (Issue Links & Vote Counts)"]
+            OrgGuides["Right Column: Organization & Voter Guides"]
             CandidateQA["Verified Candidate Q&A & Policy Citations"]
         end
 
-        subgraph Screen2["2. Candidate & Ballot Intelligence Hub (/screens/candidate-hub)"]
-            SurveyMatrix["Side-by-Side Issue & Policy Survey Matrix"]
-            CandidateDossier["Candidate Profile (Bio/CV, Voting Record, Media)"]
-            OrgGuides["Organization Voter Guides & Slates"]
-            TestimonialsDM["Peer Voter Testimonials & Direct Messaging"]
+        subgraph Screen2["2. Candidate Profiles (/<toronto|ontario|canada>_<year>/candidates)"]
+            CandidateCards["Top Row: Candidate Cards (Issue Badges, Org Badges + Unaffiliated Voter# Badge, Your Vote Badge)"]
+            CandidateDossier["Zero-Margin Candidate Summary (Tagline CTAs, Files, Voting Record, Media)"]
+            TestimonialsDM["Right Column: Peer Voter Testimonials & Direct Messaging"]
         end
 
-        subgraph Screen3["3. My Action & Election Center (/screens/election-center)"]
-            TierTabs["Tiered Race Tabs (Regional, Councilor, Mayoral, Prov, Fed)"]
-            TierIssues["Subset of Global Issues with Policies at Selected Governance Tier"]
-            CandidateSnaps["Candidate Snapshots & Key Issues"]
-            CivicActions["1-Click Civic Actions (Vote Pledge & Yard Sign Request)"]
-            CivicCalendar["Dynamic Civic Calendar (Debates, Advance Polls, Watch Parties)"]
+        subgraph Screen3["3. Voter Dashboard (/screens/election-center)"]
+            CivicCalendar["Top Row: Election Calendar (Weekly Default / Monthly Toggle • Followed Candidate/Org Events & Global Election Dates)"]
+            ActiveElections["Your Active Elections Cards (Links to Election Summary + Endorses Badge)"]
+            FollowSubscriptions["Followed Issues, Candidates & Organizations + Granular Notification Settings"]
             PollLocator["Interactive Polling Place Map, Hours & Voter ID Guide"]
         end
     end
@@ -291,22 +352,22 @@ flowchart TD
         OrgActor["Voting Block / Org Actions (DNS TXT Verified)"]
     end
 
-    AuthVerify --> Screen1
-    AuthVerify --> Screen2
-    AuthVerify --> Screen3
+    ProfileSetup --> Screen1
+    ProfileSetup --> Screen2
+    ProfileSetup --> Screen3
 
     %% Voter Actions
     VoterActor -->|"Browse candidate cards, filter issue feed, vote on issues"| IssueActivityFeed
-    VoterActor -->|"Jump to top issues by vote count"| TopIssuesByVote
-    VoterActor -->|"Compare stances, watch clips, write testimonials, DM candidate"| SurveyMatrix
-    VoterActor -->|"Subscribe to org slates & thread alerts"| OrgGuides
-    VoterActor -->|"Pledge vote, request lawn sign, RSVP to debate, locate poll"| CivicActions
+    VoterActor -->|"Navigate from Election Summary to Candidate Profiles"| CandidateCards
+    VoterActor -->|"Pledge support, request lawn sign, inspect files & media, write testimonials"| CandidateDossier
+    VoterActor -->|"Follow issues, candidates & orgs; configure granular notification settings"| FollowSubscriptions
+    VoterActor -->|"View weekly/monthly calendar, check active elections & locate polling station"| CivicCalendar
 
     %% Candidate Actions
     CandidateActor -->|"Claim unmanaged profile via domain/ID verification"| CandidateDossier
-    CandidateActor -->|"Submit standardized survey answers, bio/CV & media clips"| SurveyMatrix
+    CandidateActor -->|"Upload candidate files (cv.pdf, resume.pdf), voting record & media"| CandidateDossier
     CandidateActor -->|"Post highlighted Official Candidate Q&A replies on local policies"| CandidateQA
-    CandidateActor -->|"Fulfill neighborhood lawn sign delivery queue"| CivicActions
+    CandidateActor -->|"Publish campaign events to followers' Election Calendars"| CivicCalendar
 
     %% Voting Block / Organization Actions
     OrgActor -->|"Verify official domain via DNS TXT record"| OrgGuides

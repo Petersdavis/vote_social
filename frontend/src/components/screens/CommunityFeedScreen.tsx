@@ -1,27 +1,33 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
+import { useParams } from "next/navigation";
 import {
   ArrowBigUp,
+  ArrowRight,
   BadgeCheck,
   Bell,
   Building2,
-  CheckCircle2,
-  Filter,
+  FileText,
   Flame,
+  Layers,
   MapPin,
   MessageSquare,
-  Megaphone,
   PlusCircle,
+  Search,
   ShieldCheck,
   Sparkles,
   ThumbsUp,
   Users,
 } from "lucide-react";
 import {
+  CANDIDATES,
   FORUM_THREADS,
-  PRECINCT_PRIORITIES,
+  SCOPED_POLICIES,
   VOTER_CONTEXT,
+  VOTING_ORGANIZATIONS,
+  getIssuesWithPoliciesForTier,
   type EndorsementBadge,
 } from "@/data/mockCivicData";
 
@@ -29,15 +35,24 @@ function PledgeBadgePill({ badge }: { badge: EndorsementBadge }) {
   const colorStyles = {
     blue: "bg-blue-50 text-blue-800 border-blue-200",
     emerald: "bg-emerald-50 text-emerald-800 border-emerald-200",
-    amber: "bg-amber-50 text-amber-800 border-amber-200",
+    amber: "bg-amber-50 text-amber-900 border-amber-200",
     purple: "bg-purple-50 text-purple-800 border-purple-200",
+    slate: "bg-slate-100 text-slate-700 border-slate-300",
+  }[badge.color];
+
+  const dotStyles = {
+    blue: "bg-blue-600",
+    emerald: "bg-emerald-600",
+    amber: "bg-amber-500",
+    purple: "bg-purple-600",
+    slate: "bg-slate-400",
   }[badge.color];
 
   return (
     <span
       className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${colorStyles}`}
     >
-      <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+      <span className={`w-2 h-2 rounded-full shrink-0 ${dotStyles}`} />
       {badge.label}
     </span>
   );
@@ -45,36 +60,97 @@ function PledgeBadgePill({ badge }: { badge: EndorsementBadge }) {
 
 export default function CommunityFeedScreen({
   compact = false,
+  municipality,
 }: {
   compact?: boolean;
+  municipality?: string;
 }) {
-  const [selectedCategory, setSelectedCategory] = useState<string>("All");
-  const [upvotedIds, setUpvotedIds] = useState<Record<string, boolean>>({
+  const params = useParams<{ municipality?: string }>();
+  const rawSlug =
+    municipality ||
+    (typeof params?.municipality === "string"
+      ? params.municipality
+      : "toronto_2026");
+
+  const normalizedSlug = rawSlug.includes("_")
+    ? rawSlug.toLowerCase()
+    : `${rawSlug.toLowerCase()}_2026`;
+
+  const [entityPart, yearPart = "2026"] = normalizedSlug.split("_");
+
+  const [selectedIssueId, setSelectedIssueId] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [upvotedThreadIds, setUpvotedThreadIds] = useState<
+    Record<string, boolean>
+  >({
     "thread-ontario-line-mitigation": true,
     "thread-missing-middle-housing": true,
   });
-  const [showCandidateOnly, setShowCandidateOnly] = useState(false);
+  const [upvotedIssueIds, setUpvotedIssueIds] = useState<
+    Record<string, boolean>
+  >({});
 
-  const categories = [
-    "All",
-    "Transit & Streets",
-    "Housing & Zoning",
-    "Parks & Safety",
-    "Local Budget",
-  ];
+  const formattedEntity =
+    entityPart === "toronto"
+      ? "City of Toronto"
+      : entityPart === "ontario"
+      ? "Province of Ontario"
+      : entityPart === "canada"
+      ? "Government of Canada"
+      : entityPart
+          .split("-")
+          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+          .join(" ");
 
-  const filteredThreads = FORUM_THREADS.filter((t) => {
-    if (selectedCategory !== "All" && t.category !== selectedCategory) {
-      return false;
-    }
-    if (showCandidateOnly && !t.candidateResponded) {
-      return false;
-    }
-    return true;
-  });
+  const formattedMunicipality = `${formattedEntity} (${yearPart})`;
 
-  const toggleUpvote = (id: string) => {
-    setUpvotedIds((prev) => ({ ...prev, [id]: !prev[id] }));
+  const issuesForElection = getIssuesWithPoliciesForTier(
+    entityPart === "ontario"
+      ? ["Provincial"]
+      : entityPart === "canada"
+      ? ["Federal"]
+      : ["Councilor", "Mayoral", "Regional"]
+  );
+
+  // Top Issues by Vote
+  const topIssuesByVote = [...issuesForElection].sort(
+    (a, b) => b.voteCount - a.voteCount
+  );
+
+  // Left-hand feed of issues ordered by recent activity
+  const feedThreadsByRecentActivity = [...FORUM_THREADS]
+    .sort((a, b) => a.recentActivityMinutesAgo - b.recentActivityMinutesAgo)
+    .filter((thread) => {
+      if (selectedIssueId !== "all" && thread.issueId !== selectedIssueId) {
+        return false;
+      }
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchesTitle = thread.title.toLowerCase().includes(q);
+        const matchesIssue = thread.issueTitle.toLowerCase().includes(q);
+        const matchesSummary = thread.summary.toLowerCase().includes(q);
+        const matchesTags = thread.tags.some((t) =>
+          t.toLowerCase().includes(q)
+        );
+        return matchesTitle || matchesIssue || matchesSummary || matchesTags;
+      }
+      return true;
+    });
+
+  const toggleThreadVote = (id: string) => {
+    setUpvotedThreadIds((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const toggleIssueVote = (id: string) => {
+    setUpvotedIssueIds((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const orgBadgeStyles = {
+    emerald: "bg-emerald-50 text-emerald-900 border-emerald-200",
+    blue: "bg-blue-50 text-blue-900 border-blue-200",
+    amber: "bg-amber-50 text-amber-900 border-amber-200",
+    purple: "bg-purple-50 text-purple-900 border-purple-200",
+    slate: "bg-slate-100 text-slate-800 border-slate-300",
   };
 
   return (
@@ -85,28 +161,22 @@ export default function CommunityFeedScreen({
           <div className="w-9 h-9 rounded-xl bg-blue-700 flex items-center justify-center text-white font-bold text-sm shadow-xs">
             VS
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-bold tracking-tight text-slate-900 text-base">
-                Vote Social
-              </span>
-              <span className="text-[11px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200 font-semibold">
-                Screen 1 • Community Feed
-              </span>
-            </div>
-            <p className="text-xs text-slate-500">
-              Core Value:{" "}
-              <span className="font-semibold text-slate-700 italic">
-                “Democracy is a social activity”
-              </span>
-            </p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-bold tracking-tight text-slate-900 text-base">
+              Vote Social
+            </span>
+            <span className="text-[11px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200 font-semibold">
+              /{normalizedSlug}/summary
+            </span>
           </div>
         </div>
 
-        {/* Hyper-Local Precinct Pill */}
+        {/* Ward Pill */}
         <div className="flex items-center flex-wrap gap-2.5">
           <div className="flex items-center gap-2 bg-slate-900 text-white px-3.5 py-1.5 rounded-full text-xs font-medium shadow-xs">
             <MapPin className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+            <span>{formattedMunicipality}</span>
+            <span className="text-slate-400">•</span>
             <span>{VOTER_CONTEXT.wardName}</span>
             <span className="text-slate-400">•</span>
             <span className="font-mono text-emerald-300">
@@ -116,179 +186,385 @@ export default function CommunityFeedScreen({
 
           <div className="hidden sm:flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-900 px-3 py-1.5 rounded-full text-xs font-semibold">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span>1,428 Verified Neighbors in Precinct 14-08</span>
+            <span>1,428 Verified Neighbors in Ward 14</span>
           </div>
         </div>
       </header>
 
       {/* Main Content Layout */}
-      <div className={`max-w-[1360px] mx-auto ${compact ? "p-4" : "p-5 lg:p-7"}`}>
-        {/* Neighborhood Banner & Filter Bar */}
-        <div className="bg-white rounded-2xl border border-slate-200/90 p-5 mb-6 shadow-2xs">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 pb-4 border-b border-slate-100">
+      <div
+        className={`max-w-[1360px] mx-auto ${
+          compact ? "p-4" : "p-5 lg:p-7"
+        } space-y-6`}
+      >
+        {/* =====================================================================
+            FIRST ROW OF CARDS: ALL CANDIDATES IN THE ELECTION
+            - Section of badges with their Key Issues
+            - Section of badges with their Organisational Supports (inc. number of voters)
+            - Generic badge for number of voters independently aligned with the candidate
+           ===================================================================== */}
+        <section className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-2xs">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-4">
             <div>
               <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-blue-700 mb-1">
-                <Users className="w-3.5 h-3.5" />
-                <span>Hyper-Local Precinct Forum • Subdivision 14-08 (Riverdale North)</span>
+                <Layers className="w-3.5 h-3.5" />
+                <span>
+                  {formattedMunicipality} Election Summary •{" "}
+                  {VOTER_CONTEXT.wardName}
+                </span>
               </div>
               <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-                What matters most in {VOTER_CONTEXT.wardName} right now?
+                Candidates, Key Issues & Voter Alignment
               </h1>
-              <p className="text-sm text-slate-600 mt-0.5">
-                Discussions are scoped strictly to verified postal codes in{" "}
-                <span className="font-mono font-semibold text-slate-800">M4K / M4J</span>.
-                Top-upvoted priorities are automatically delivered to all certified Ward 14 candidates for public response.
-              </p>
             </div>
 
-            <div className="flex items-center gap-2.5 shrink-0">
-              <button
-                type="button"
-                onClick={() => setShowCandidateOnly(!showCandidateOnly)}
-                className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold border transition ${
-                  showCandidateOnly
-                    ? "bg-emerald-700 text-white border-emerald-700"
-                    : "bg-emerald-50/80 text-emerald-900 border-emerald-200 hover:bg-emerald-100"
-                }`}
-              >
-                <BadgeCheck className="w-4 h-4" />
-                <span>Verified Candidate Q&A (7)</span>
-              </button>
-              <button
-                type="button"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-blue-700 text-white hover:bg-blue-800 shadow-xs transition"
-              >
-                <PlusCircle className="w-4 h-4" />
-                <span>Post Local Priority</span>
-              </button>
-            </div>
+            <Link
+              href={`/${normalizedSlug}/candidates`}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-blue-700 text-white text-xs font-bold transition self-start lg:self-auto shrink-0"
+            >
+              <span>View Candidate Profiles</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
           </div>
 
-          {/* Filter Pills & Active Voter Badge */}
-          <div className="pt-3.5 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center flex-wrap gap-1.5">
-              <span className="text-xs font-medium text-slate-500 mr-1 inline-flex items-center gap-1">
-                <Filter className="w-3.5 h-3.5" /> Filter:
-              </span>
-              {categories.map((cat) => (
+          {/* First Row: All Candidates Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {CANDIDATES.map((candidate) => {
+              const totalOrgVoters = candidate.orgSupports.reduce(
+                (acc, org) => acc + org.voterCount,
+                0
+              );
+              const totalAlignedVoters =
+                totalOrgVoters + candidate.independentVotersCount;
+
+              return (
+                <div
+                  key={candidate.id}
+                  className={`rounded-2xl border p-4 flex flex-col justify-between transition bg-slate-50/50 ${
+                    candidate.userPledged
+                      ? "border-blue-600 ring-2 ring-blue-600/15 bg-white shadow-xs"
+                      : "border-slate-200/90 hover:border-slate-300 bg-white"
+                  }`}
+                >
+                  <div className="space-y-3.5">
+                    {/* Candidate Identity Header */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`w-11 h-11 rounded-xl ${candidate.avatarBg} text-white font-bold text-sm flex items-center justify-center shadow-2xs shrink-0`}
+                        >
+                          {candidate.initials}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <Link
+                              href={`/${normalizedSlug}/candidates`}
+                              className="font-bold text-base text-slate-900 hover:text-blue-700 hover:underline transition"
+                            >
+                              {candidate.name}
+                            </Link>
+                            <ShieldCheck
+                              className="w-4 h-4 text-emerald-600 shrink-0"
+                              aria-label="Verified Candidate Identity"
+                            />
+                          </div>
+                          <span className="text-xs text-slate-500 block">
+                            {candidate.roleTitle}
+                          </span>
+                        </div>
+                      </div>
+                      {candidate.userPledged ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-700 text-white shadow-2xs shrink-0">
+                          <Sparkles className="w-3 h-3" />
+                          Your Vote
+                        </span>
+                      ) : (
+                        <span className="font-mono text-[11px] font-bold px-2.5 py-1 rounded-lg bg-slate-100 text-slate-800 border border-slate-200 shrink-0">
+                          {totalAlignedVoters.toLocaleString()} Total Aligned
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Section 1: Badges with Candidate's Key Issues */}
+                    <div>
+                      <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block mb-1.5">
+                        Key Issues
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {candidate.topIssues.map((issueLabel, idx) => {
+                          const linkedIssueId =
+                            candidate.keyIssueIds[idx] || "all";
+                          const isSelected = selectedIssueId === linkedIssueId;
+                          return (
+                            <button
+                              key={issueLabel}
+                              type="button"
+                              onClick={() =>
+                                setSelectedIssueId(
+                                  isSelected ? "all" : linkedIssueId
+                                )
+                              }
+                              className={`text-xs font-semibold px-2.5 py-1 rounded-lg border transition inline-flex items-center gap-1.5 cursor-pointer ${
+                                isSelected
+                                  ? "bg-blue-700 text-white border-blue-700"
+                                  : "bg-slate-50 text-slate-800 border-slate-200 hover:border-blue-300 hover:bg-blue-50/50"
+                              }`}
+                            >
+                              <span
+                                className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                                  isSelected ? "bg-white" : "bg-blue-600"
+                                }`}
+                              />
+                              <span>{issueLabel}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Section 2: Badges with Organisational Supports (inc. voter count) + Unaffiliated Voters Badge */}
+                    <div className="pt-3 border-t border-slate-100">
+                      <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block mb-1.5">
+                        Organizational Supports & Unaffiliated Voters
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {candidate.orgSupports.map((org) => (
+                          <span
+                            key={org.orgId}
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border ${
+                              orgBadgeStyles[org.color]
+                            }`}
+                          >
+                            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                            <span>{org.orgName}</span>
+                            <span className="font-mono font-bold px-1.5 py-0.2 rounded bg-white/80 text-[11px]">
+                              {org.voterCount.toLocaleString()} voters
+                            </span>
+                          </span>
+                        ))}
+
+                        {/* Generic Badge for Number of Unaffiliated Voters */}
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 text-slate-800 border border-slate-300">
+                          <Users className="w-3.5 h-3.5 text-slate-600 shrink-0" />
+                          <span>Unaffiliated Voters</span>
+                          <span className="font-mono font-bold px-1.5 py-0.2 rounded bg-white text-slate-900 text-[11px]">
+                            {candidate.independentVotersCount.toLocaleString()}
+                          </span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* =====================================================================
+            2-COLUMN ASYMMETRIC GRID:
+            - Larger Left Column (8 cols): Feed of Issues based on recent activity
+            - Right Column (4 cols): Top Issues by Vote simplified down to just issue links and vote counts
+           ===================================================================== */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* LARGER LEFT HAND COLUMN: Feed of Issues Based on Recent Activity (8 cols) */}
+          <div className="lg:col-span-8 space-y-4">
+            {/* Search & Issue Filter Bar */}
+            <div className="bg-white rounded-2xl border border-slate-200/90 p-4 shadow-2xs space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-base sm:text-lg font-bold text-slate-900">
+                    Issue Activity Feed
+                  </h2>
+                  <p className="text-xs text-slate-500">
+                    Recent activity across issues in {VOTER_CONTEXT.wardName}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search issues or policies..."
+                      className="pl-8 pr-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white w-48 sm:w-56"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-blue-700 text-white hover:bg-blue-800 shadow-xs transition cursor-pointer"
+                  >
+                    <PlusCircle className="w-3.5 h-3.5" />
+                    <span>New Issue Thread</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Active Issue Filter Pills */}
+              <div className="flex items-center flex-wrap gap-1.5 pt-2 border-t border-slate-100">
                 <button
-                  key={cat}
                   type="button"
-                  onClick={() => setSelectedCategory(cat)}
-                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition ${
-                    selectedCategory === cat
+                  onClick={() => setSelectedIssueId("all")}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                    selectedIssueId === "all"
                       ? "bg-slate-900 text-white"
                       : "bg-slate-100 text-slate-700 hover:bg-slate-200"
                   }`}
                 >
-                  {cat}
+                  All Issues ({issuesForElection.length})
                 </button>
-              ))}
+                {issuesForElection.map((issue) => (
+                  <button
+                    key={issue.id}
+                    type="button"
+                    onClick={() =>
+                      setSelectedIssueId(
+                        selectedIssueId === issue.id ? "all" : issue.id
+                      )
+                    }
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                      selectedIssueId === issue.id
+                        ? "bg-blue-700 text-white"
+                        : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                    }`}
+                  >
+                    {issue.shortLabel}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            <div className="flex items-center gap-2 text-xs text-slate-600">
-              <span className="font-medium text-slate-500">Your Active Forum Badges:</span>
-              <PledgeBadgePill badge={VOTER_CONTEXT.userPledgeBadge} />
-              <span className="hidden xl:inline-flex">
-                <PledgeBadgePill badge={VOTER_CONTEXT.userOrgBadge} />
-              </span>
-            </div>
-          </div>
-        </div>
+            {/* Feed Items Ordered by Recent Activity */}
+            {feedThreadsByRecentActivity.map((thread) => {
+              const isUpvoted = upvotedThreadIds[thread.id] ?? false;
+              const displayVotes =
+                thread.upvotes +
+                (isUpvoted && !thread.userUpvoted ? 1 : 0) -
+                (!isUpvoted && thread.userUpvoted ? 1 : 0);
 
-        {/* 2-Column Asymmetric Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* Left/Center Column: Neighborhood Timeline & Q&A Threads (8 cols) */}
-          <div className="lg:col-span-8 space-y-5">
-            {filteredThreads.map((thread) => {
-              const isUpvoted = upvotedIds[thread.id] ?? false;
-              const displayUpvotes =
-                thread.upvotes + (isUpvoted && !thread.userUpvoted ? 1 : 0) - (!isUpvoted && thread.userUpvoted ? 1 : 0);
+              const attachedPolicies = SCOPED_POLICIES.filter((p) =>
+                thread.scopedPolicyIds.includes(p.id)
+              );
 
               return (
                 <article
                   key={thread.id}
                   className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden transition hover:border-slate-300"
                 >
-                  {/* Top Priority Banner Strip */}
+                  {/* Top Issue Banner Strip */}
                   <div className="bg-slate-50/90 border-b border-slate-200/70 px-5 py-2.5 flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-mono font-bold bg-amber-100 text-amber-900 border border-amber-300/80">
-                        <Flame className="w-3.5 h-3.5 text-amber-600" />#{thread.priorityRank} Precinct Priority
+                    <div className="flex items-center flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedIssueId(thread.issueId)}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-bold bg-blue-100/90 text-blue-900 border border-blue-300/80 hover:bg-blue-200/70 transition cursor-pointer"
+                      >
+                        <span>Issue: {thread.issueTitle}</span>
+                      </button>
+                      <span className="text-xs font-mono text-slate-500">
+                        • Active {thread.timestamp}
                       </span>
-                      <span className="text-xs font-semibold px-2.5 py-0.5 rounded-md bg-slate-200/75 text-slate-700">
-                        {thread.category}
-                      </span>
-                      {thread.tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="hidden sm:inline-block text-[11px] font-medium text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200"
-                        >
-                          #{tag}
-                        </span>
-                      ))}
                     </div>
 
                     {thread.candidateResponded && (
                       <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
                         <BadgeCheck className="w-3.5 h-3.5 text-emerald-600" />
-                        {thread.candidateResponsesCount} Verified Candidate Responses
+                        {thread.candidateResponsesCount} Verified Candidate
+                        Responses
                       </span>
                     )}
                   </div>
 
                   {/* Main Post Body */}
                   <div className="p-5 flex gap-4">
-                    {/* Upvote Column */}
+                    {/* Vote Column */}
                     <div className="flex flex-col items-center shrink-0">
                       <button
                         type="button"
-                        onClick={() => toggleUpvote(thread.id)}
-                        className={`w-12 py-2.5 rounded-xl border flex flex-col items-center justify-center gap-0.5 transition ${
+                        onClick={() => toggleThreadVote(thread.id)}
+                        className={`w-12 py-2.5 rounded-xl border flex flex-col items-center justify-center gap-0.5 transition cursor-pointer ${
                           isUpvoted
                             ? "bg-blue-700 text-white border-blue-700 shadow-xs"
                             : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-blue-50 hover:border-blue-300"
                         }`}
-                        title="Upvote local priority"
+                        title="Vote on this issue"
                       >
                         <ArrowBigUp
-                          className={`w-5 h-5 ${isUpvoted ? "fill-current" : ""}`}
+                          className={`w-5 h-5 ${
+                            isUpvoted ? "fill-current" : ""
+                          }`}
                         />
                         <span className="font-mono text-xs font-bold">
-                          {displayUpvotes}
+                          {displayVotes}
                         </span>
                       </button>
                       <span className="text-[10px] font-medium text-slate-400 mt-1 uppercase tracking-wider">
-                        Priority
+                        Votes
                       </span>
                     </div>
 
-                    {/* Thread Content */}
+                    {/* Issue Thread Content */}
                     <div className="flex-1 min-w-0">
-                      {/* Author & Voter Endorsement Badge Row */}
+                      {/* Author & Voter/Org Endorsement Badge Row */}
                       <div className="flex flex-wrap items-center gap-2 mb-2">
                         <div className="w-7 h-7 rounded-full bg-slate-800 text-white text-xs font-bold flex items-center justify-center">
                           {thread.authorInitials}
                         </div>
-                        <span className="font-semibold text-sm text-slate-900">
-                          {thread.authorName}
+                        <span className="font-semibold text-sm text-slate-900 inline-flex items-center gap-1">
+                          <span>{thread.authorName}</span>
+                          {thread.verifiedIdentity && (
+                            <ShieldCheck
+                              className="w-4 h-4 text-emerald-600 shrink-0"
+                              aria-label="Verified Identity"
+                            />
+                          )}
                         </span>
                         <span className="text-xs font-mono text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
                           {thread.precinct} ({thread.postalPrefix})
                         </span>
                         <PledgeBadgePill badge={thread.pledgeBadge} />
-                        <span className="text-xs text-slate-400 ml-auto">
-                          {thread.timestamp}
-                        </span>
                       </div>
 
                       {/* Title & Summary */}
-                      <h2 className="text-base sm:text-lg font-bold text-slate-900 leading-snug mb-2">
+                      <h3 className="text-base sm:text-lg font-bold text-slate-900 leading-snug mb-2">
                         {thread.title}
-                      </h2>
-                      <p className="text-sm text-slate-600 leading-relaxed mb-4">
+                      </h3>
+                      <p className="text-sm text-slate-600 leading-relaxed mb-3.5">
                         {thread.summary}
                       </p>
+
+                      {/* Policies */}
+                      {attachedPolicies.length > 0 && (
+                        <div className="mb-4 p-3 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
+                          <div className="flex items-center justify-between gap-2 text-[11px] font-mono uppercase tracking-wider text-slate-500 font-bold">
+                            <span className="inline-flex items-center gap-1.5 text-slate-700">
+                              <FileText className="w-3.5 h-3.5 text-blue-700" />
+                              Policies
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {attachedPolicies.map((pol) => (
+                              <div
+                                key={pol.id}
+                                className="p-2.5 rounded-lg bg-white border border-slate-200/90 flex flex-col justify-between"
+                              >
+                                <div className="flex items-center justify-between gap-1.5 mb-1">
+                                  <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-blue-50 text-blue-800 border border-blue-200">
+                                    {pol.code}
+                                  </span>
+                                  <span className="text-[11px] font-mono font-bold text-slate-600">
+                                    ▲ {pol.voteCount}
+                                  </span>
+                                </div>
+                                <p className="text-xs font-bold text-slate-900 leading-snug">
+                                  {pol.title}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
                       {/* Verified Candidate Interactions & Neighbor Replies */}
                       {thread.replies.length > 0 && (
@@ -304,20 +580,21 @@ export default function CommunityFeedScreen({
                                     <div className="w-8 h-8 rounded-full bg-emerald-700 text-white text-xs font-bold flex items-center justify-center shadow-2xs">
                                       {reply.authorInitials}
                                     </div>
-                                    <div>
-                                      <div className="flex items-center gap-1.5 flex-wrap">
-                                        <span className="font-bold text-sm text-slate-900">
-                                          {reply.authorName}
-                                        </span>
-                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-700 text-white">
-                                          <BadgeCheck className="w-3 h-3" />
-                                          {reply.precinctOrTitle}
-                                        </span>
-                                      </div>
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <span className="font-bold text-sm text-slate-900 inline-flex items-center gap-1">
+                                        <span>{reply.authorName}</span>
+                                        <ShieldCheck
+                                          className="w-4 h-4 text-emerald-600 shrink-0"
+                                          aria-label="Verified Candidate Identity"
+                                        />
+                                      </span>
+                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-700 text-white">
+                                        {reply.precinctOrTitle}
+                                      </span>
                                     </div>
                                   </div>
                                   <span className="text-xs text-emerald-800 font-mono">
-                                    Official Q&A Response • {reply.timestamp}
+                                    Official Response • {reply.timestamp}
                                   </span>
                                 </div>
 
@@ -334,7 +611,8 @@ export default function CommunityFeedScreen({
                                   <div className="flex items-center gap-3 text-emerald-900 font-semibold ml-auto">
                                     <span className="inline-flex items-center gap-1 bg-white px-2.5 py-1 rounded-md border border-emerald-200">
                                       <ThumbsUp className="w-3.5 h-3.5 text-emerald-600" />
-                                      {reply.helpfulCount} Neighbors found helpful
+                                      {reply.helpfulCount} Neighbors found
+                                      helpful
                                     </span>
                                   </div>
                                 </div>
@@ -348,8 +626,14 @@ export default function CommunityFeedScreen({
                                   <div className="w-6 h-6 rounded-full bg-slate-700 text-white text-[11px] font-bold flex items-center justify-center">
                                     {reply.authorInitials}
                                   </div>
-                                  <span className="font-semibold text-xs text-slate-900">
-                                    {reply.authorName}
+                                  <span className="font-semibold text-xs text-slate-900 inline-flex items-center gap-1">
+                                    <span>{reply.authorName}</span>
+                                    {reply.verifiedIdentity && (
+                                      <ShieldCheck
+                                        className="w-3.5 h-3.5 text-emerald-600 shrink-0"
+                                        aria-label="Verified Identity"
+                                      />
+                                    )}
                                   </span>
                                   <span className="text-[11px] font-mono text-slate-500">
                                     {reply.precinctOrTitle}
@@ -375,15 +659,15 @@ export default function CommunityFeedScreen({
                         <div className="flex items-center gap-4">
                           <span className="inline-flex items-center gap-1.5 font-semibold text-slate-700">
                             <MessageSquare className="w-4 h-4 text-slate-400" />
-                            {thread.commentCount} Neighbor & Candidate Comments
+                            {thread.commentCount} Issue Comments
                           </span>
                           <span className="inline-flex items-center gap-1 text-slate-600">
                             <Bell className="w-3.5 h-3.5 text-blue-600" />
-                            Subscribed to thread updates
+                            Subscribed to issue updates
                           </span>
                         </div>
                         <span className="font-medium text-blue-700 hover:underline cursor-pointer">
-                          Ask Candidates a Follow-up →
+                          Ask Candidates About This Issue &rarr;
                         </span>
                       </div>
                     </div>
@@ -393,135 +677,148 @@ export default function CommunityFeedScreen({
             })}
           </div>
 
-          {/* Right Column: Precinct Priorities Leaderboard, Endorsement Badges & Org Pinned Feed (4 cols) */}
-          <aside className="lg:col-span-4 space-y-5">
-            {/* Widget 1: Upvoted Local Priorities Leaderboard */}
+          {/* RIGHT HAND SIDE: Top Issues by Vote simplified down to just issue links and vote counts (4 cols) */}
+          <aside className="lg:col-span-4 space-y-4">
             <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-2xs">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <Flame className="w-4 h-4 text-amber-600" />
                   <h3 className="font-bold text-sm text-slate-900 uppercase tracking-wider">
-                    Top Precinct Priorities
+                    Top Issues by Vote
                   </h3>
                 </div>
-                <span className="text-[11px] font-mono bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-semibold">
-                  M4K • Live Rank
+                {selectedIssueId !== "all" && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedIssueId("all")}
+                    className="text-xs font-semibold text-blue-700 hover:underline cursor-pointer"
+                  >
+                    Show All
+                  </button>
+                )}
+              </div>
+
+              <div className="divide-y divide-slate-100">
+                {topIssuesByVote.map((issue) => {
+                  const isSelected = selectedIssueId === issue.id;
+                  const isVoted = upvotedIssueIds[issue.id] ?? false;
+                  const voteTotal = issue.voteCount + (isVoted ? 1 : 0);
+
+                  return (
+                    <div
+                      key={issue.id}
+                      className="py-2.5 first:pt-0 last:pb-0 flex items-center justify-between gap-3"
+                    >
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSelectedIssueId(isSelected ? "all" : issue.id)
+                        }
+                        className={`text-left text-xs sm:text-sm font-semibold hover:text-blue-700 hover:underline transition truncate cursor-pointer ${
+                          isSelected
+                            ? "text-blue-700 font-bold underline"
+                            : "text-slate-800"
+                        }`}
+                      >
+                        {issue.title}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => toggleIssueVote(issue.id)}
+                        className={`font-mono text-xs font-bold px-2.5 py-1 rounded-lg border shrink-0 transition cursor-pointer ${
+                          isVoted
+                            ? "bg-blue-700 text-white border-blue-700"
+                            : "bg-slate-50 text-slate-800 border-slate-200 hover:border-blue-300 hover:text-blue-700"
+                        }`}
+                      >
+                        ▲ {voteTotal}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Organisation & Voter Guides (Migrated to Summary Page) */}
+            <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-2xs space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-blue-700" />
+                  <h3 className="font-bold text-sm text-slate-900 uppercase tracking-wider">
+                    Organization & Voter Guides
+                  </h3>
+                </div>
+                <span className="text-[11px] font-mono text-slate-500">
+                  {VOTING_ORGANIZATIONS.length} Verified Guides
                 </span>
               </div>
-              <p className="text-xs text-slate-500 mb-4">
-                Issues crossing 150+ verified neighbor upvotes trigger an official Q&A prompt to all Ward 14 candidates.
-              </p>
 
               <div className="space-y-3">
-                {PRECINCT_PRIORITIES.map((item) => (
-                  <div
-                    key={item.rank}
-                    className="p-3 rounded-xl bg-slate-50 border border-slate-200/75 flex items-start justify-between gap-3"
-                  >
-                    <div className="flex items-start gap-2.5">
-                      <span className="w-6 h-6 rounded-lg bg-slate-900 text-white font-mono text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
-                        #{item.rank}
-                      </span>
-                      <div>
-                        <p className="text-xs font-bold text-slate-900 leading-snug">
-                          {item.title}
-                        </p>
-                        <div className="flex items-center gap-2 mt-1.5">
-                          <span className="text-[11px] text-slate-500">
-                            {item.category}
-                          </span>
-                          <span className="text-slate-300">•</span>
-                          <span className="text-[11px] font-semibold text-emerald-700">
-                            {item.candidatesReplied}/3 Candidates Answered
+                {VOTING_ORGANIZATIONS.map((org) => {
+                  const endorsementBadge: EndorsementBadge =
+                    org.endorsedCandidateId === "maya-lin"
+                      ? {
+                          label: "Endorses: Maya Lin",
+                          type: "candidate",
+                          color: "blue",
+                        }
+                      : org.endorsedCandidateId === "david-kowalski"
+                      ? {
+                          label: "Endorses: David Kowalski",
+                          type: "candidate",
+                          color: "amber",
+                        }
+                      : {
+                          label: "Endorses: Priya Nair",
+                          type: "candidate",
+                          color: "emerald",
+                        };
+
+                  return (
+                    <div
+                      key={org.id}
+                      className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2.5"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <h4 className="font-bold text-xs sm:text-sm text-slate-900">
+                              {org.name}
+                            </h4>
+                            <ShieldCheck
+                              className="w-3.5 h-3.5 text-emerald-600 shrink-0"
+                              aria-label="Verified Organization Identity"
+                            />
+                          </div>
+                          <span className="text-[11px] text-slate-500 font-mono block">
+                            {org.verifiedDomain} •{" "}
+                            {org.subscriberCount.toLocaleString()} Ward Voters
                           </span>
                         </div>
                       </div>
+
+                      <div>
+                        <PledgeBadgePill badge={endorsementBadge} />
+                      </div>
+
+                      <p className="text-xs text-slate-700 leading-relaxed">
+                        {org.slateSummary}
+                      </p>
+
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {org.keyIssues.map((issue) => (
+                          <span
+                            key={issue}
+                            className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-white border border-slate-200 text-slate-700"
+                          >
+                            {issue}
+                          </span>
+                        ))}
+                      </div>
                     </div>
-                    <div className="text-right shrink-0">
-                      <span className="font-mono text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md">
-                        ▲ {item.upvotes}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Widget 2: Voter Endorsement Badges & Neighborhood Momentum */}
-            <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-2xs">
-              <div className="flex items-center gap-2 mb-2">
-                <Sparkles className="w-4 h-4 text-blue-700" />
-                <h3 className="font-bold text-sm text-slate-900 uppercase tracking-wider">
-                  Voter Endorsement Badges
-                </h3>
-              </div>
-              <p className="text-xs text-slate-600 mb-3.5">
-                Display your public pledge next to your forum comments so neighbors see local grassroots momentum.
-              </p>
-
-              <div className="p-3.5 rounded-xl bg-blue-50/70 border border-blue-200 mb-3">
-                <div className="flex items-center justify-between text-xs mb-1.5">
-                  <span className="font-bold text-blue-950">Your Active Badge</span>
-                  <span className="text-[11px] font-semibold text-blue-700 inline-flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> Visible on Posts
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  <PledgeBadgePill badge={VOTER_CONTEXT.userPledgeBadge} />
-                  <PledgeBadgePill badge={VOTER_CONTEXT.userOrgBadge} />
-                </div>
-              </div>
-
-              <div className="space-y-2 text-xs">
-                <div className="flex items-center justify-between py-1.5 border-b border-slate-100">
-                  <span className="font-medium text-slate-700">
-                    Pledged: Maya Lin (Ward 14)
-                  </span>
-                  <span className="font-mono font-bold text-slate-900">
-                    214 in M4K
-                  </span>
-                </div>
-                <div className="flex items-center justify-between py-1.5 border-b border-slate-100">
-                  <span className="font-medium text-slate-700">
-                    Pledged: David Kowalski (Ward 14)
-                  </span>
-                  <span className="font-mono font-bold text-slate-900">
-                    112 in M4K
-                  </span>
-                </div>
-                <div className="flex items-center justify-between py-1.5">
-                  <span className="font-medium text-slate-700">
-                    Pledged: Priya Nair (Ward 14)
-                  </span>
-                  <span className="font-mono font-bold text-slate-900">
-                    86 in M4K
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Widget 3: Voting Block Pinned Broadcast */}
-            <div className="bg-slate-900 text-white rounded-2xl p-5 shadow-xs">
-              <div className="flex items-center justify-between mb-2">
-                <span className="inline-flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-wider text-amber-300 font-semibold">
-                  <Megaphone className="w-3.5 h-3.5" />
-                  Pinned Voting Block Broadcast
-                </span>
-                <span className="text-[11px] text-slate-400">Opt-in Feed</span>
-              </div>
-              <h4 className="font-bold text-sm text-white mb-1">
-                More Neighbours Metro • Ward 14 Chapter
-              </h4>
-              <p className="text-xs text-slate-300 leading-relaxed mb-3">
-                “Our volunteer research team audited all 3 Ward 14 candidates on 6-storey transit zoning and co-op housing speedups. Join 412 East End subscribers at Tuesday’s debate!”
-              </p>
-              <div className="flex items-center justify-between pt-2.5 border-t border-slate-800 text-xs">
-                <span className="text-emerald-400 font-semibold inline-flex items-center gap-1">
-                  <Building2 className="w-3.5 h-3.5" /> 4,820 Block Subscribers
-                </span>
-                <span className="text-white font-semibold underline cursor-pointer">
-                  View Slate Guide →
-                </span>
+                  );
+                })}
               </div>
             </div>
           </aside>

@@ -1,0 +1,97 @@
+rules_version='2'
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // User profile documents. A user may read and write only their own
+    // document, and the document id must match their auth uid.
+    match /users/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null
+        && request.auth.uid == userId
+        && request.resource.data.uid == userId;
+      allow update: if request.auth != null
+        && request.auth.uid == userId
+        && request.resource.data.uid == userId;
+      allow delete: if request.auth != null && request.auth.uid == userId;
+
+      // User -> Feedback posts subcollection (read/writable by the user)
+      match /feedback_posts/{postId} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow create, update: if request.auth != null
+          && request.auth.uid == userId
+          && request.resource.data.authorId == userId
+          && request.resource.data.author is string
+          && request.resource.data.content is string
+          && request.resource.data.content.size() > 0
+          && request.resource.data.content.size() <= 4000;
+        allow delete: if request.auth != null && request.auth.uid == userId;
+      }
+
+      // User -> Public posts subcollection (global readable, user writable/deletable)
+      match /public_posts/{postId} {
+        allow read: if true;
+        allow create: if request.auth != null
+          && request.auth.uid == userId
+          && request.resource.data.authorId == userId
+          && request.resource.data.author is string
+          && request.resource.data.content is string
+          && request.resource.data.content.size() > 0
+          && request.resource.data.content.size() <= 2000;
+        allow delete: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+
+    // CollectionGroup rule for global read access to `public_posts`
+    match /{path=**}/public_posts/{postId} {
+      allow read: if true;
+    }
+
+    // CollectionGroup rule for user-owned `feedback_posts`
+    match /{path=**}/feedback_posts/{postId} {
+      allow read: if request.auth != null && resource.data.authorId == request.auth.uid;
+    }
+
+    // Write-only waitlist signups captured directly from the landing page.
+    // Individual documents are never enumerable from the client.
+    match /waitlist/{entryId} {
+      allow read: if false;
+      allow create, update: if request.resource.data.email is string
+        && request.resource.data.email.size() > 3
+        && request.resource.data.email.size() <= 320;
+      allow delete: if false;
+    }
+
+    // Sparse collection of active ElectionSets (`electionSets/{setId}`) with
+    // waitlist user counters.
+    match /electionSets/{setId} {
+      allow read: if true;
+      allow create, update: if request.auth != null
+        && request.resource.data.id == setId
+        && request.resource.data.name is string
+        && request.resource.data.tier in ['municipal', 'provincial', 'federal']
+        && request.resource.data.count is int
+        && request.resource.data.count >= 0;
+      allow delete: if false;
+
+      // Per-district user membership records (`electionSets/{setId}/members/{userId}`)
+      match /members/{userId} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow create: if request.auth != null
+          && request.auth.uid == userId
+          && request.resource.data.uid == userId;
+        allow update, delete: if false;
+      }
+    }
+
+    // Legacy public read-only aggregate counts per community.
+    match /waitlistCounts/{communityId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /{document=**} {
+      // Deny by default. Every collection must have an explicit rule above.
+      allow read, write: if false;
+    }
+  }
+}

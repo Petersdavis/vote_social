@@ -42,24 +42,24 @@ export default function ScreenshotToolbar({
       </span>
 
       <Link
-        href="/screens/community-feed"
+        href="/toronto_2026/summary"
         className={`px-2.5 py-1.5 rounded-xl font-semibold transition ${
           activeScreen === 1
             ? "bg-blue-600 text-white"
             : "bg-slate-800 text-slate-300 hover:bg-slate-700"
         }`}
       >
-        1. Community Feed
+        Election Summary
       </Link>
       <Link
-        href="/screens/candidate-hub"
+        href="/toronto_2026/candidates"
         className={`px-2.5 py-1.5 rounded-xl font-semibold transition ${
           activeScreen === 2
             ? "bg-blue-600 text-white"
             : "bg-slate-800 text-slate-300 hover:bg-slate-700"
         }`}
       >
-        2. Candidate Hub
+        Candidate Profiles
       </Link>
       <Link
         href="/screens/election-center"
@@ -69,7 +69,7 @@ export default function ScreenshotToolbar({
             : "bg-slate-800 text-slate-300 hover:bg-slate-700"
         }`}
       >
-        3. Election Center
+        Voter Dashboard
       </Link>
 
       <div className="h-4 w-px bg-slate-700" />
