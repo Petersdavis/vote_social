@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ArrowBigUp,
   ArrowRight,
@@ -26,17 +26,33 @@ import CandidateHubScreen from "@/components/screens/CandidateHubScreen";
 import ElectionCenterScreen from "@/components/screens/ElectionCenterScreen";
 import WaitlistCarousel from "@/components/screens/WaitlistCarousel";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { subscribeToPublicUserCount } from "@/lib/leaderboard";
 import { submitEmailWaitlist } from "@/lib/waitlist";
 
 export default function WaitlistLandingPage() {
   const router = useRouter();
   const { user, profile } = useAuth();
   const [activeShowcaseTab, setActiveShowcaseTab] = useState<1 | 2 | 3>(1);
+  const [userCount, setUserCount] = useState<number | null>(null);
   const [heroEmail, setHeroEmail] = useState("");
   const [heroSubmitted, setHeroSubmitted] = useState(false);
 
   const [footerEmail, setFooterEmail] = useState("");
   const [footerSubmitted, setFooterSubmitted] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = subscribeToPublicUserCount(
+      (count) => {
+        setUserCount(count);
+      },
+      (err) => {
+        console.error("Failed to read public_metadata user count:", err);
+      },
+    );
+    return () => {
+      unsubscribe();
+    };
+  }, []);
 
   const handleHeroSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -230,7 +246,7 @@ export default function WaitlistLandingPage() {
                   🔒 Zero spam • Complete your civic profile in under 60 seconds
                 </span>
                 <span className="font-mono font-semibold text-emerald-700">
-                  3,890+ neighbors already queued
+                  {`✨✨ ${(userCount ?? 0 + 15).toLocaleString()} / 2,500 ✨✨ signups to dev launch! 🎉🎉🎉`}
                 </span>
               </div>
             </div>
@@ -337,39 +353,39 @@ export default function WaitlistLandingPage() {
 
                   <ul className="space-y-3 text-sm text-slate-600">
                     <li className="flex items-start gap-2.5">
-                      <Users className="w-4 h-4 text-blue-700 shrink-0 mt-1" />
+                      <MapPin className="w-4 h-4 text-blue-700 shrink-0 mt-1" />
                       <span>
                         <strong className="text-slate-900">
-                          Understand where the community stands:
+                          Instant Ballot Preview:
                         </strong>{" "}
-                        Quickly see which issues each candidate champions and how many neighbors and local groups back them.
+                        Enter your postal code to see a clean, factual profile of every candidate running in your exact ward or riding.
                       </span>
                     </li>
                     <li className="flex items-start gap-2.5">
-                      <MessageSquare className="w-4 h-4 text-blue-700 shrink-0 mt-1" />
+                      <ShieldCheck className="w-4 h-4 text-blue-700 shrink-0 mt-1" />
                       <span>
                         <strong className="text-slate-900">
-                          Join real neighborhood conversations:
+                          A True “Wikipedia for Elections”:
                         </strong>{" "}
-                        Discuss local issues with verified neighbors and see how everyday concerns connect to real policy proposals.
+                        Access a non-partisan, non-profit public square owned by the public interest—not political parties or corporate shareholders.
                       </span>
                     </li>
                     <li className="flex items-start gap-2.5">
-                      <ArrowBigUp className="w-4 h-4 text-blue-700 shrink-0 mt-1" />
+                      <Compass className="w-4 h-4 text-blue-700 shrink-0 mt-1" />
                       <span>
                         <strong className="text-slate-900">
-                          Shape the local agenda:
+                          5-Minute Voter Preparedness:
                         </strong>{" "}
-                        Vote on the issues that matter most to your household so candidates have to address top community concerns.
+                        Skip hours of dead-end searches and get everything you need to cast an informed vote in one place.
                       </span>
                     </li>
                     <li className="flex items-start gap-2.5">
-                      <Building2 className="w-4 h-4 text-emerald-600 shrink-0 mt-1" />
+                      <Calendar className="w-4 h-4 text-emerald-600 shrink-0 mt-1" />
                       <span>
                         <strong className="text-slate-900">
-                          Vote with trusted community guides:
+                          Precision Voting Alerts:
                         </strong>{" "}
-                        Discover which candidates are endorsed by the local advocacy groups and community organizations you trust.
+                        Get customized reminders for registration deadlines, advance voting days, and your exact polling station.
                       </span>
                     </li>
                   </ul>
@@ -456,7 +472,7 @@ export default function WaitlistLandingPage() {
                 {/* Screen 2 Description & Bullet Points */}
                 <div className="p-6">
                   <h3 className="text-xl font-bold text-slate-900 mb-4">
-                    Candidate Profiles
+                    Candidate Comparison
                   </h3>
 
                   <ul className="space-y-3 text-sm text-slate-600">
@@ -464,36 +480,36 @@ export default function WaitlistLandingPage() {
                       <Layers className="w-4 h-4 text-blue-700 shrink-0 mt-1" />
                       <span>
                         <strong className="text-slate-900">
-                          Compare Candidates on Issues and Policies:
+                          Side-by-Side Issue Comparisons:
                         </strong>{" "}
-                        Cut through campaign noise to see what each candidate actually stands for and who supports their campaign.
-                      </span>
-                    </li>
-                    <li className="flex items-start gap-2.5">
-                      <Flag className="w-4 h-4 text-blue-700 shrink-0 mt-1" />
-                      <span>
-                        <strong className="text-slate-900">
-                          Engage voters with 1-click CTAs:
-                        </strong>{" "}
-                        Show your support publicly, request a lawn sign for your yard, or stay in the loop on campaign updates in one click.
+                        Skip the spin and compare candidate stances head-to-head on local issues like housing, transit, and property taxes.
                       </span>
                     </li>
                     <li className="flex items-start gap-2.5">
                       <FileText className="w-4 h-4 text-blue-700 shrink-0 mt-1" />
                       <span>
                         <strong className="text-slate-900">
-                          Verify experience & track records:
+                          Substantive Policy Blueprints:
                         </strong>{" "}
-                        Look beyond slogans by reviewing candidates’ full resumes, past council votes, and town hall clips.
+                        Read clear, concise breakdowns of proposed policy actions instead of empty slogans and attack ads.
+                      </span>
+                    </li>
+                    <li className="flex items-start gap-2.5">
+                      <Building2 className="w-4 h-4 text-blue-700 shrink-0 mt-1" />
+                      <span>
+                        <strong className="text-slate-900">
+                          Transparent Endorsements:
+                        </strong>{" "}
+                        See exactly which local advocacy groups, community organizations, and unions are backing each candidate.
                       </span>
                     </li>
                     <li className="flex items-start gap-2.5">
                       <MessageSquare className="w-4 h-4 text-emerald-600 shrink-0 mt-1" />
                       <span>
                         <strong className="text-slate-900">
-                          Hear from neighbors & ask direct questions:
+                          Direct Candidate Q&amp;A:
                         </strong>{" "}
-                        Read personal vouches from people in your ward and put your own questions to candidates on the public record.
+                        Ask questions directly to local candidates and review their public, on-the-record answers before you vote.
                       </span>
                     </li>
                   </ul>
@@ -566,39 +582,39 @@ export default function WaitlistLandingPage() {
 
                   <ul className="space-y-3 text-sm text-slate-600">
                     <li className="flex items-start gap-2.5">
-                      <Layers className="w-4 h-4 text-blue-700 shrink-0 mt-1" />
+                      <ShieldCheck className="w-4 h-4 text-blue-700 shrink-0 mt-1" />
                       <span>
                         <strong className="text-slate-900">
-                          Stay ready for every election:
+                          Verified, Bot-Free &amp; Private:
                         </strong>{" "}
-                        Keep track of all your upcoming municipal, provincial, and federal elections—and who you’re backing—in one place.
+                        Engage in a strictly moderated forum of verified local neighbors with zero bots, zero data sales, and no robocalls.
                       </span>
                     </li>
                     <li className="flex items-start gap-2.5">
-                      <Calendar className="w-4 h-4 text-blue-700 shrink-0 mt-1" />
+                      <ArrowBigUp className="w-4 h-4 text-blue-700 shrink-0 mt-1" />
                       <span>
                         <strong className="text-slate-900">
-                          Never miss a debate or voting day:
+                          Community Micro-Polling:
                         </strong>{" "}
-                        See early polling windows, Election Day hours, and local town halls from the candidates and groups you follow.
+                        Weigh in on neighborhood polls to show candidates where locals actually stand long before Election Day.
                       </span>
                     </li>
                     <li className="flex items-start gap-2.5">
-                      <Compass className="w-4 h-4 text-emerald-600 shrink-0 mt-1" />
+                      <Layers className="w-4 h-4 text-emerald-600 shrink-0 mt-1" />
                       <span>
                         <strong className="text-slate-900">
-                          Know exactly where and how to vote:
+                          Tailored Issue Feed:
                         </strong>{" "}
-                        Get walking directions to your assigned polling station, check wait times, and verify what ID to bring before you head out.
+                        Filter your dashboard strictly by the local topics you care about most so you can ignore the noise.
                       </span>
                     </li>
                     <li className="flex items-start gap-2.5">
-                      <Users className="w-4 h-4 text-blue-700 shrink-0 mt-1" />
+                      <Flag className="w-4 h-4 text-blue-700 shrink-0 mt-1" />
                       <span>
                         <strong className="text-slate-900">
-                          Follow what matters, on your terms:
+                          Post-Election Promise Tracker:
                         </strong>{" "}
-                        Follow specific issues, candidates, and organizations while controlling exactly which updates reach your inbox.
+                        Track elected officials after they take office to see if they actually fulfill their campaign pledges.
                       </span>
                     </li>
                   </ul>

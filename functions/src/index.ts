@@ -24,6 +24,7 @@ import "./firebase";
 // `users` collection is only readable by its owner, so counts are maintained
 // server-side in the read-only `waitlistCounts` collection.
 export {
+  onUserCreated,
   recomputeWaitlistCounts,
 } from "./waitlist/aggregateCounts";
 

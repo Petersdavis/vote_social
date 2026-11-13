@@ -8,12 +8,44 @@
  */
 
 import {getFirestore, FieldValue} from "firebase-admin/firestore";
+import {onDocumentCreated} from "firebase-functions/v2/firestore";
 import {onCall, HttpsError} from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 
 export const REGION = "northamerica-northeast1";
 export const USERS_COLLECTION = "users";
 export const ELECTION_SETS_COLLECTION = "electionSets";
+export const PUBLIC_METADATA_COLLECTION = "public_metadata";
+export const PUBLIC_STATS_DOC_ID = "stats";
+
+/**
+ * Increment `public_metadata/stats.user_count` whenever a new `users/{userId}`
+ * document is created.
+ */
+export const onUserCreated = onDocumentCreated(
+  {
+    document: `${USERS_COLLECTION}/{userId}`,
+    region: REGION,
+  },
+  async (event) => {
+    const db = getFirestore();
+    const statsRef = db
+      .collection(PUBLIC_METADATA_COLLECTION)
+      .doc(PUBLIC_STATS_DOC_ID);
+
+    await statsRef.set(
+      {
+        user_count: FieldValue.increment(1),
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      {merge: true},
+    );
+
+    logger.info("Incremented public_metadata/stats.user_count", {
+      userId: event.params.userId,
+    });
+  },
+);
 
 export interface StoredElectionSet {
   id: string;
@@ -101,9 +133,22 @@ export const recomputeWaitlistCounts = onCall(
     }
 
     await batch.commit();
+
+    await db
+      .collection(PUBLIC_METADATA_COLLECTION)
+      .doc(PUBLIC_STATS_DOC_ID)
+      .set(
+        {
+          user_count: usersSnap.size,
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        {merge: true},
+      );
+
     logger.info("Recomputed sparse electionSets counts", {
       sets: results.length,
+      userCount: usersSnap.size,
     });
-    return {electionSets: results};
+    return {electionSets: results, userCount: usersSnap.size};
   },
 );

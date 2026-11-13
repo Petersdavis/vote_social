@@ -6,7 +6,15 @@
  * `provincial`, `federal`).
  */
 
-import { collection, getDocs, query, where } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  onSnapshot,
+  query,
+  where,
+} from "firebase/firestore";
 
 import { ELECTION_SETS_COLLECTION } from "./auth";
 import { getFirebaseFirestore } from "./firebase";
@@ -15,6 +23,49 @@ import { getCommunityLabel, ONTARIO_COMMUNITIES } from "./ontario-communities";
 import { absoluteUrl } from "./site";
 
 export const WAITLIST_COUNTS_COLLECTION = "waitlistCounts";
+export const PUBLIC_METADATA_COLLECTION = "public_metadata";
+export const PUBLIC_STATS_DOC_ID = "stats";
+
+/**
+ * Fetch the global user count from `public_metadata/stats` (`user_count`).
+ */
+export async function fetchPublicUserCount(): Promise<number> {
+  const db = getFirebaseFirestore();
+  const ref = doc(db, PUBLIC_METADATA_COLLECTION, PUBLIC_STATS_DOC_ID);
+  const snapshot = await getDoc(ref);
+  if (!snapshot.exists()) {
+    return 0;
+  }
+  const raw = snapshot.get("user_count");
+  return typeof raw === "number" && Number.isFinite(raw) && raw >= 0 ? raw : 0;
+}
+
+/**
+ * Subscribe in real time to `public_metadata/stats.user_count`.
+ */
+export function subscribeToPublicUserCount(
+  onUpdate: (count: number) => void,
+  onError?: (error: Error) => void,
+): () => void {
+  const db = getFirebaseFirestore();
+  const ref = doc(db, PUBLIC_METADATA_COLLECTION, PUBLIC_STATS_DOC_ID);
+  return onSnapshot(
+    ref,
+    (snapshot) => {
+      if (!snapshot.exists()) {
+        onUpdate(0);
+        return;
+      }
+      const raw = snapshot.get("user_count");
+      const count =
+        typeof raw === "number" && Number.isFinite(raw) && raw >= 0 ? raw : 0;
+      onUpdate(count);
+    },
+    (error) => {
+      onError?.(error);
+    },
+  );
+}
 
 /** A sparse `electionSets/{id}` document with > 0 pending waitlist users. */
 export interface ActiveElectionSetCounter extends UserElectionSet {

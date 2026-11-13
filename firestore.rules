@@ -89,6 +89,12 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Public read-only platform metadata (e.g., `public_metadata/stats` user_count).
+    match /public_metadata/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     match /{document=**} {
       // Deny by default. Every collection must have an explicit rule above.
       allow read, write: if false;
