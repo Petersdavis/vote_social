@@ -30,6 +30,7 @@ import {
 } from "firebase/firestore";
 
 import { getFirebaseAuth, getFirebaseFirestore } from "./firebase";
+import { trackEvent } from "./analytics";
 import {
   buildUserElectionSets,
   type PoliticalBoundaryOption,
@@ -278,6 +279,14 @@ export async function saveUserProfile(user: User, input: ProfileInput): Promise<
       console.error("Failed to update auth display name", error);
     }
   }
+
+  trackEvent("complete_profile", {
+    city: input.city ?? null,
+    province: input.province ?? null,
+    is_candidate,
+    is_org_representative,
+    is_journalist,
+  });
 }
 
 /**
@@ -306,6 +315,7 @@ export async function signUpWithEmail(
   }
 
   await ensureUserProfileSafely(credential.user);
+  trackEvent("sign_up", { method: "password" });
   return credential;
 }
 
@@ -313,6 +323,7 @@ export async function signUpWithEmail(
 export async function signInWithEmail(email: string, password: string): Promise<UserCredential> {
   const credential = await signInWithEmailAndPassword(auth(), email, password);
   await ensureUserProfileSafely(credential.user);
+  trackEvent("login", { method: "password" });
   return credential;
 }
 
@@ -327,6 +338,7 @@ export async function signInWithGoogle(loginHint?: string): Promise<UserCredenti
 
   const credential = await signInWithPopup(auth(), provider);
   await ensureUserProfileSafely(credential.user);
+  trackEvent("login", { method: "google" });
   return credential;
 }
 

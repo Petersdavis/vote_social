@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Check, Link2, Share2 } from "lucide-react";
+import { trackEvent } from "@/lib/analytics";
 import { SITE_DESCRIPTION, SITE_NAME } from "@/lib/site";
 
 interface WaitlistShareEmbedProps {
@@ -69,6 +70,7 @@ export default function WaitlistShareEmbed({
     try {
       await navigator.clipboard.writeText(shareUrl);
       setCopiedLink(true);
+      trackEvent("share", { method: "copy_link" });
       window.setTimeout(() => setCopiedLink(false), 2000);
     } catch (error) {
       console.error("Failed to copy share link", error);
@@ -95,6 +97,7 @@ export default function WaitlistShareEmbed({
               href={target.href}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => trackEvent("share", { method: target.id })}
               title={target.label}
               aria-label={target.label}
               className="w-8 h-8 rounded-full hover:scale-105 hover:opacity-90 transition inline-flex items-center justify-center shadow-2xs"

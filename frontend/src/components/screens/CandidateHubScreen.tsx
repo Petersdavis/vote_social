@@ -151,37 +151,55 @@ export default function CandidateHubScreen({
             - Zero margin between the candidate cards and the candidate summary container below
            ===================================================================== */}
         <section>
-          {/* Candidate Cards Row (Zero bottom margin) */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-0 mb-0 border border-slate-200/90 rounded-t-2xl overflow-hidden bg-slate-100/70 divide-y lg:divide-y-0 lg:divide-x divide-slate-200/90">
+          {/* Candidate Cards Row (Zero bottom margin — Mobile: 3 Badge Tabs in Top Row | Desktop: Full Candidate Cards) */}
+          <div className="grid grid-cols-3 gap-0 mb-0 border border-slate-200/90 rounded-t-2xl overflow-hidden bg-slate-100/70 divide-x divide-slate-200/90">
             {CANDIDATES.map((candidate) => {
               const isSelected = candidate.id === selectedCandidateId;
+              const isPledged =
+                pledgedCandidateIds[candidate.id] ?? candidate.userPledged;
               return (
                 <div
                   key={candidate.id}
                   onClick={() => setSelectedCandidateId(candidate.id)}
                   role="button"
                   tabIndex={0}
+                  aria-label={`Select candidate ${candidate.name}`}
+                  aria-selected={isSelected}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       setSelectedCandidateId(candidate.id);
                     }
                   }}
-                  className={`p-5 text-left transition cursor-pointer flex flex-col justify-between ${
+                  className={`p-3 md:p-5 text-center md:text-left transition cursor-pointer flex flex-col items-center md:items-stretch justify-center md:justify-between ${
                     isSelected
                       ? "bg-white ring-2 ring-inset ring-blue-600/20"
                       : "bg-slate-50/70 hover:bg-white/80"
                   }`}
                 >
-                  <div className="space-y-3.5">
-                    {/* Candidate Identity & "Your Vote" Badge */}
-                    <div className="flex items-start justify-between gap-2">
+                  <div className="w-full flex flex-col items-center md:items-stretch md:space-y-3.5">
+                    {/* Candidate Identity & "Your Vote" Badge (Mobile: Badge Only | Desktop: Badge + Name + Details) */}
+                    <div className="flex flex-col md:flex-row items-center md:items-start justify-center md:justify-between gap-1.5 md:gap-2">
                       <div className="flex items-center gap-3">
-                        <div
-                          className={`w-11 h-11 rounded-xl ${candidate.avatarBg} text-white font-bold text-sm flex items-center justify-center shadow-xs shrink-0`}
-                        >
-                          {candidate.initials}
+                        <div className="relative">
+                          <div
+                            className={`w-11 h-11 rounded-xl ${candidate.avatarBg} text-white font-bold text-sm flex items-center justify-center shadow-xs shrink-0 ${
+                              isSelected
+                                ? "ring-2 ring-offset-2 ring-blue-600 md:ring-0 md:ring-offset-0"
+                                : "opacity-80 md:opacity-100"
+                            }`}
+                          >
+                            {candidate.initials}
+                          </div>
+                          {isPledged && (
+                            <span
+                              className="md:hidden absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-blue-700 text-white flex items-center justify-center ring-2 ring-white shadow-2xs"
+                              title="Your Vote"
+                            >
+                              <Sparkles className="w-2.5 h-2.5" />
+                            </span>
+                          )}
                         </div>
-                        <div>
+                        <div className="hidden md:block">
                           <div className="flex items-center gap-1.5">
                             <h2 className="font-bold text-base text-slate-900">
                               {candidate.name}
@@ -197,17 +215,16 @@ export default function CandidateHubScreen({
                         </div>
                       </div>
 
-                      {(pledgedCandidateIds[candidate.id] ??
-                        candidate.userPledged) && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-700 text-white shadow-2xs shrink-0">
+                      {isPledged && (
+                        <span className="hidden md:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-700 text-white shadow-2xs shrink-0">
                           <Sparkles className="w-3 h-3" />
                           Your Vote
                         </span>
                       )}
                     </div>
 
-                    {/* Issue Badges */}
-                    <div>
+                    {/* Issue Badges (Hidden on mobile selectable tabs) */}
+                    <div className="hidden md:block">
                       <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block mb-1.5">
                         Key Issues
                       </span>
@@ -224,8 +241,8 @@ export default function CandidateHubScreen({
                       </div>
                     </div>
 
-                    {/* Organisation Badges + Unaffiliated Voter# Badge */}
-                    <div className="pt-3 border-t border-slate-200/70">
+                    {/* Organisation Badges + Unaffiliated Voter# Badge (Hidden on mobile selectable tabs) */}
+                    <div className="hidden md:block pt-3 border-t border-slate-200/70">
                       <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block mb-1.5">
                         Organizations & Unaffiliated Voters
                       </span>
@@ -256,8 +273,8 @@ export default function CandidateHubScreen({
                     </div>
                   </div>
 
-                  {/* Active Card Indicator Bar */}
-                  <div className="mt-4 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
+                  {/* Active Card Indicator Bar (Hidden on mobile selectable tabs) */}
+                  <div className="hidden md:flex mt-4 pt-2.5 border-t border-slate-100 items-center justify-between text-xs">
                     <span
                       className={`font-semibold ${
                         isSelected ? "text-blue-700" : "text-slate-500"
@@ -283,7 +300,7 @@ export default function CandidateHubScreen({
              ===================================================================== */}
           <div className="mt-0 bg-white rounded-b-2xl border border-t-0 border-slate-200/90 p-5 lg:p-6 shadow-2xs">
             {/* Candidate Summary Top Bar + Row of CTAs under Tagline */}
-            <div className="pb-5 mb-5 border-b border-slate-200/80">
+            <div className="pb-5 mb-5 border-b border-slate-200/80 space-y-4">
               <div className="flex items-start gap-3.5">
                 <div
                   className={`w-13 h-13 rounded-2xl ${selectedCandidate.avatarBg} text-white font-bold text-lg flex items-center justify-center shadow-xs shrink-0`}
@@ -291,18 +308,34 @@ export default function CandidateHubScreen({
                   {selectedCandidate.initials}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h2 className="text-lg sm:text-xl font-bold text-slate-900">
-                      {selectedCandidate.name}
-                    </h2>
-                    <ShieldCheck
-                      className="w-4 h-4 text-emerald-600 shrink-0"
-                      aria-label="Verified Candidate Identity"
-                    />
-                    <span className="text-xs font-mono text-slate-500">
-                      {selectedCandidate.roleTitle} •{" "}
-                      {selectedCandidate.wardOrDistrict}
-                    </span>
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h2 className="text-lg sm:text-xl font-bold text-slate-900">
+                        {selectedCandidate.name}
+                      </h2>
+                      <ShieldCheck
+                        className="w-4 h-4 text-emerald-600 shrink-0"
+                        aria-label="Verified Candidate Identity"
+                      />
+                      <span className="text-xs font-mono text-slate-500">
+                        {selectedCandidate.roleTitle} •{" "}
+                        {selectedCandidate.wardOrDistrict}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {(pledgedCandidateIds[selectedCandidate.id] ??
+                        selectedCandidate.userPledged) && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-700 text-white shadow-2xs">
+                          <Sparkles className="w-3 h-3" />
+                          Your Vote
+                        </span>
+                      )}
+                      <span className="font-mono text-[11px] font-bold px-2.5 py-0.5 rounded-lg bg-slate-100 text-slate-700 border border-slate-200">
+                        {selectedCandidate.pledgeCountInWard.toLocaleString()}{" "}
+                        Ward Votes
+                      </span>
+                    </div>
                   </div>
                   <p className="text-xs sm:text-sm text-slate-600 mt-0.5">
                     {selectedCandidate.tagline}
@@ -375,6 +408,58 @@ export default function CandidateHubScreen({
                           : "Subscribe to Updates"}
                       </span>
                     </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Candidate Summary Key Issues & Affiliations (Visible in Candidate Summary) */}
+              <div className="pt-3.5 border-t border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                {/* Key Issues */}
+                <div>
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block mb-1.5">
+                    Key Issues
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {selectedCandidate.topIssues.map((issue) => (
+                      <span
+                        key={issue}
+                        className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-slate-100 text-slate-800 border border-slate-200 inline-flex items-center gap-1.5"
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-blue-600 shrink-0" />
+                        <span>{issue}</span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Affiliations: Organizations & Unaffiliated Voters */}
+                <div>
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block mb-1.5">
+                    Organizations & Unaffiliated Voters
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {selectedCandidate.orgSupports.map((org) => (
+                      <span
+                        key={org.orgId}
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border ${
+                          orgBadgeStyles[org.color]
+                        }`}
+                      >
+                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                        <span>{org.orgName}</span>
+                        <span className="font-mono font-bold px-1.5 py-0.2 rounded bg-white/80 text-[11px]">
+                          {org.voterCount.toLocaleString()}
+                        </span>
+                      </span>
+                    ))}
+
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 text-slate-800 border border-slate-300">
+                      <Users className="w-3.5 h-3.5 text-slate-600 shrink-0" />
+                      <span>Unaffiliated Voters</span>
+                      <span className="font-mono font-bold px-1.5 py-0.2 rounded bg-white text-slate-900 text-[11px]">
+                        {selectedCandidate.independentVotersCount.toLocaleString()}
+                      </span>
+                    </span>
                   </div>
                 </div>
               </div>

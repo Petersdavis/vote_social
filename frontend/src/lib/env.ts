@@ -13,6 +13,7 @@ export interface FirebaseClientConfig {
   storageBucket: string;
   messagingSenderId: string;
   appId: string;
+  measurementId?: string;
 }
 
 function required(name: string, value: string | undefined): string {
@@ -44,6 +45,9 @@ export const firebaseConfig: FirebaseClientConfig = {
     process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
   ),
   appId: required("NEXT_PUBLIC_FIREBASE_APP_ID", process.env.NEXT_PUBLIC_FIREBASE_APP_ID),
+  ...(process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
+    ? { measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID }
+    : {}),
 };
 
 export const useFirebaseEmulators = process.env.NEXT_PUBLIC_FIREBASE_USE_EMULATORS === "true";

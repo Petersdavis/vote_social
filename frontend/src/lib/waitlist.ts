@@ -22,6 +22,7 @@
 
 import { doc, runTransaction, serverTimestamp, setDoc } from "firebase/firestore";
 
+import { trackEvent } from "./analytics";
 import { getFirebaseFirestore } from "./firebase";
 import { isCanonicalCommunityId } from "./ontario-communities";
 
@@ -168,5 +169,6 @@ export async function submitEmailWaitlist(
     },
     { merge: true },
   );
+  trackEvent("generate_lead", { source });
   return { status: "created" };
 }

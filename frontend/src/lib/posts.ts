@@ -33,6 +33,7 @@ import {
 } from "firebase/firestore";
 
 import { USERS_COLLECTION, type UserProfile } from "./auth";
+import { trackEvent } from "./analytics";
 import { getFirebaseFirestore } from "./firebase";
 
 export const PUBLIC_POSTS_SUBCOLLECTION = "public_posts";
@@ -115,6 +116,8 @@ export async function createWaitlistPost(params: {
     content: trimmed,
     date_created: serverTimestamp(),
   });
+
+  trackEvent("post_message", { mode: params.mode });
 
   return { id: docRef.id, author };
 }
