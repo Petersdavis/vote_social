@@ -5,6 +5,10 @@ export const metadata: Metadata = {
   title: "Waitlist Profile & Community Leaderboard",
   description:
     "Confirm your local Municipal Ward, Provincial Riding, and Federal Riding on Vote Social and see how many neighbors in your community have joined the waitlist.",
+  robots: {
+    index: false,
+    follow: false,
+  },
   openGraph: {
     type: "website",
     siteName: SITE_NAME,

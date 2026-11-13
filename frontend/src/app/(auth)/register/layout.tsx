@@ -5,6 +5,10 @@ export const metadata: Metadata = {
   title: "Join the Early Access Waitlist",
   description:
     "Sign up for Vote Social early access to connect with verified neighbors in your ward, compare candidates, and track upcoming Municipal, Provincial, and Federal elections.",
+  robots: {
+    index: false,
+    follow: false,
+  },
   openGraph: {
     type: "website",
     siteName: SITE_NAME,

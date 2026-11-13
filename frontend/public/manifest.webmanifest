@@ -1,0 +1,16 @@
+{
+  "name": "Vote Social — Democracy is Social. Knowledge is Power. Politics is Local.",
+  "short_name": "Vote Social",
+  "description": "Connect with verified neighbors in your ward, compare candidates side-by-side on local policy surveys, pledge support with community voting blocks, and track Municipal, Provincial, and Federal elections in one place.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FAF8F5",
+  "theme_color": "#1d4ed8",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "48x48",
+      "type": "image/png"
+    }
+  ]
+}

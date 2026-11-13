@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /$
+Allow: /index.html$
+Allow: /_next/
+Allow: /assets/
+Allow: /favicon.png
+Allow: /manifest.webmanifest
+Allow: /sitemap.xml
+Disallow: /
+
+Sitemap: https://vote-social.ca/sitemap.xml

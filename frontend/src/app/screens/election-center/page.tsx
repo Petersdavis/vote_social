@@ -6,6 +6,10 @@ export const metadata = {
   title: "Screen 3: My Action & Election Center | Vote Social",
   description:
     "Politics is local — Tiered election tabs, candidate snapshot view, dynamic civic calendar, interactive polling place locator, and one-click civic actions.",
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 export default function ElectionCenterPage() {

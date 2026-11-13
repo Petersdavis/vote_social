@@ -9,7 +9,7 @@
  */
 
 export const SITE_URL = (
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://vote-social-pdavis.web.app"
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://vote-social.ca"
 ).replace(/\/+$/, "");
 
 export const SITE_NAME = "Vote Social";
