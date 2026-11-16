@@ -11,6 +11,11 @@
       "description": "Stage 1 early access waitlist, live neighborhood signup counters, and interactive previews of the 3 core Vote Social screens."
     },
     {
+      "name": "Civic & Development Blog",
+      "uri": "/blog/",
+      "description": "Essays on local democracy, campaign equity, and why elections need public-interest digital infrastructure."
+    },
+    {
       "name": "LLM Summary Documentation",
       "uri": "/llms.txt",
       "description": "Concise structured summary of Vote Social's mission, 3 core screens, and target user groups."

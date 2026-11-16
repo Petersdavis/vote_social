@@ -1,6 +1,8 @@
 User-agent: *
 Allow: /$
 Allow: /index.html$
+Allow: /blog$
+Allow: /blog/
 Allow: /llms.txt$
 Allow: /llms-full.txt$
 Allow: /.well-known/ard.json$

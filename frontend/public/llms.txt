@@ -20,4 +20,5 @@ Vote Social operates under a core principle: **Democracy is Social. Knowledge is
 ## Documentation & Links
 
 - [Vote Social Homepage & Early Access Waitlist](https://vote-social.ca/): Join the Stage 1 waitlist (development launches at 2,500 signups) and preview the interactive platform screens.
+- [Civic & Development Blog](https://vote-social.ca/blog/): Essays on local democracy, campaign equity, and why elections need public-interest digital infrastructure.
 - [Full LLM Documentation (llms-full.txt)](https://vote-social.ca/llms-full.txt): Detailed overview of Vote Social's architecture, federalist issue/policy model, persona features, and privacy guarantees.

@@ -274,7 +274,9 @@ export default function WaitlistLandingPage() {
             <div className="rounded-2xl bg-white border border-slate-200/90 p-6 sm:p-8 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6">
               <div className="space-y-2 max-w-3xl">
                 <div className="flex items-center gap-2.5 text-xs font-mono uppercase tracking-widest text-blue-700 font-bold">
-                  <span>Development Blog</span>
+                  <Link href="/blog" className="hover:underline">
+                    Development Blog
+                  </Link>
                   <span className="text-slate-300">•</span>
                   <span className="text-slate-500 font-normal">
                     {latestPost.publishedAt}
@@ -290,7 +292,7 @@ export default function WaitlistLandingPage() {
 
               <div className="shrink-0">
                 <Link
-                  href="/blog"
+                  href={`/blog/${latestPost.slug}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="px-4 py-2.5 rounded-xl border border-slate-300 bg-slate-50 hover:bg-blue-700 hover:border-blue-700 hover:text-white text-slate-800 text-xs font-bold inline-flex items-center gap-2 transition shadow-2xs"

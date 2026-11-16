@@ -1,6 +1,8 @@
 "use client";
 
 import React, { Suspense, useEffect, useState, type FormEvent } from "react";
+import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -9,6 +11,7 @@ import {
   Building2,
   CheckCircle2,
   ChevronDown,
+  ExternalLink,
   Flag,
   Loader2,
   MapPin,
@@ -17,11 +20,19 @@ import {
 } from "lucide-react";
 
 import { useAuth } from "@/components/auth/AuthProvider";
-import CandidateHubScreen from "@/components/screens/CandidateHubScreen";
-import CommunityFeedScreen from "@/components/screens/CommunityFeedScreen";
-import ElectionCenterScreen from "@/components/screens/ElectionCenterScreen";
 import WaitlistCarousel from "@/components/screens/WaitlistCarousel";
 import WaitlistShareEmbed from "@/components/screens/WaitlistShareEmbed";
+import { BLOG_POSTS } from "@/data/blogPosts";
+
+const CandidateHubScreen = dynamic(
+  () => import("@/components/screens/CandidateHubScreen"),
+);
+const CommunityFeedScreen = dynamic(
+  () => import("@/components/screens/CommunityFeedScreen"),
+);
+const ElectionCenterScreen = dynamic(
+  () => import("@/components/screens/ElectionCenterScreen"),
+);
 import { saveUserProfile } from "@/lib/auth";
 import {
   fetchBoundariesForPostcode,
@@ -236,6 +247,7 @@ function ProfileForm() {
     const resolvedCity = boundaryResolution?.city ?? profile?.city;
     const resolvedProvince = boundaryResolution?.province ?? profile?.province;
     const formattedCode = postcode ? formatCanadianPostcode(postcode) : "M4K 1N2";
+    const latestPost = BLOG_POSTS[0];
 
     return (
       <div className="space-y-10">
@@ -384,6 +396,43 @@ function ProfileForm() {
             />
           </WaitlistCarousel>
         </div>
+
+        {/* Development Blog Section (Latest Article Preview) */}
+        {latestPost && (
+          <section className="max-w-4xl mx-auto">
+            <div className="rounded-2xl bg-white border border-slate-200/90 p-6 sm:p-8 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div className="space-y-2 max-w-2xl">
+                <div className="flex items-center gap-2.5 text-xs font-mono uppercase tracking-widest text-blue-700 font-bold">
+                  <Link href="/blog" className="hover:underline">
+                    Development Blog
+                  </Link>
+                  <span className="text-slate-300">•</span>
+                  <span className="text-slate-500 font-normal">
+                    {latestPost.publishedAt}
+                  </span>
+                </div>
+                <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+                  {latestPost.title}
+                </h2>
+                <p className="text-sm text-slate-600 leading-relaxed">
+                  {latestPost.subtitle}
+                </p>
+              </div>
+
+              <div className="shrink-0">
+                <Link
+                  href={`/blog/${latestPost.slug}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2.5 rounded-xl border border-slate-300 bg-slate-50 hover:bg-blue-700 hover:border-blue-700 hover:text-white text-slate-800 text-xs font-bold inline-flex items-center gap-2 transition shadow-2xs"
+                >
+                  <span>Read Article</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* On-Page Interactive High-Fidelity Screen Showcase (Without Summarizing Hero Cards) */}
         <section className="pt-2">
