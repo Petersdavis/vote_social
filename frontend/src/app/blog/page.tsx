@@ -164,7 +164,7 @@ export default function DevelopmentBlogIndexPage() {
               </p>
 
               <div className="flex flex-wrap items-center justify-between gap-4 pt-2">
-                <div className="flex flex-wrap items-center gap-4 text-xs font-mono text-slate-500">
+                <div className="flex flex-wrap items-center gap-4 text-xs font-mono text-slate-600">
                   <span className="font-sans font-semibold text-slate-800">
                     {post.author.name} • {post.author.role}
                   </span>

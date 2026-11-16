@@ -962,7 +962,7 @@ export const CANDIDATES: CandidateProfile[] = [
     incumbent: false,
     verified: true,
     tagline: "Small Business Leader & CPA focused on core road maintenance, fiscal discipline, and balanced growth.",
-    avatarBg: "bg-amber-600",
+    avatarBg: "bg-amber-800",
     pledgeCountInWard: 1210,
     pledgeCountInPostal: 112,
     independentVotersCount: 590,

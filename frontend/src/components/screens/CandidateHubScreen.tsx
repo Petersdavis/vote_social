@@ -110,7 +110,11 @@ export default function CandidateHubScreen({
   return (
     <div className="bg-[#FAF8F5] text-slate-900 min-h-full font-sans selection:bg-blue-600 selection:text-white">
       {/* Top App Header */}
-      <header className="bg-white border-b border-slate-200/90 px-5 py-3.5 flex flex-wrap items-center justify-between gap-4">
+      <div
+        role="region"
+        aria-label="Candidate Profiles App Header"
+        className="bg-white border-b border-slate-200/90 px-5 py-3.5 flex flex-wrap items-center justify-between gap-4"
+      >
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-blue-700 flex items-center justify-center text-white font-bold text-sm shadow-xs">
             VS
@@ -119,7 +123,7 @@ export default function CandidateHubScreen({
             <span className="font-bold tracking-tight text-slate-900 text-base">
               Vote Social
             </span>
-            <span className="text-[11px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200 font-semibold">
+            <span className="text-[11px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-md bg-blue-50 text-blue-800 border border-blue-200 font-semibold">
               /{normalizedSlug}/candidates
             </span>
           </div>
@@ -129,15 +133,15 @@ export default function CandidateHubScreen({
           <div className="flex items-center gap-2 bg-slate-900 text-white px-3.5 py-1.5 rounded-full text-xs font-medium">
             <MapPin className="w-3.5 h-3.5 text-emerald-400" />
             <span>{formattedMunicipality}</span>
-            <span className="text-slate-400">•</span>
+            <span className="text-slate-300">•</span>
             <span>{VOTER_CONTEXT.wardName}</span>
-            <span className="text-slate-400">•</span>
+            <span className="text-slate-300">•</span>
             <span className="font-mono text-emerald-300">
               {VOTER_CONTEXT.postalCode}
             </span>
           </div>
         </div>
-      </header>
+      </div>
 
       <div
         className={`max-w-[1360px] mx-auto ${
@@ -164,13 +168,14 @@ export default function CandidateHubScreen({
                   role="button"
                   tabIndex={0}
                   aria-label={`Select candidate ${candidate.name}`}
-                  aria-selected={isSelected}
+                  aria-pressed={isSelected}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
                       setSelectedCandidateId(candidate.id);
                     }
                   }}
-                  className={`p-3 md:p-5 text-center md:text-left transition cursor-pointer flex flex-col items-center md:items-stretch justify-center md:justify-between ${
+                  className={`p-3 md:p-5 text-center md:text-left transition cursor-pointer flex flex-col items-center md:items-stretch justify-center md:justify-between focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 ${
                     isSelected
                       ? "bg-white ring-2 ring-inset ring-blue-600/20"
                       : "bg-slate-50/70 hover:bg-white/80"
@@ -185,7 +190,7 @@ export default function CandidateHubScreen({
                             className={`w-11 h-11 rounded-xl ${candidate.avatarBg} text-white font-bold text-sm flex items-center justify-center shadow-xs shrink-0 ${
                               isSelected
                                 ? "ring-2 ring-offset-2 ring-blue-600 md:ring-0 md:ring-offset-0"
-                                : "opacity-80 md:opacity-100"
+                                : "md:opacity-100"
                             }`}
                           >
                             {candidate.initials}
@@ -209,7 +214,7 @@ export default function CandidateHubScreen({
                               aria-label="Verified Candidate Identity"
                             />
                           </div>
-                          <span className="text-xs text-slate-500 block">
+                          <span className="text-xs text-slate-600 block">
                             {candidate.roleTitle}
                           </span>
                         </div>
@@ -225,7 +230,7 @@ export default function CandidateHubScreen({
 
                     {/* Issue Badges (Hidden on mobile selectable tabs) */}
                     <div className="hidden md:block">
-                      <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block mb-1.5">
+                      <span className="text-[10px] font-mono uppercase tracking-wider text-slate-600 font-bold block mb-1.5">
                         Key Issues
                       </span>
                       <div className="flex flex-wrap gap-1.5">
@@ -243,7 +248,7 @@ export default function CandidateHubScreen({
 
                     {/* Organisation Badges + Unaffiliated Voter# Badge (Hidden on mobile selectable tabs) */}
                     <div className="hidden md:block pt-3 border-t border-slate-200/70">
-                      <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block mb-1.5">
+                      <span className="text-[10px] font-mono uppercase tracking-wider text-slate-600 font-bold block mb-1.5">
                         Organizations & Unaffiliated Voters
                       </span>
                       <div className="flex flex-wrap gap-1.5">
@@ -277,14 +282,14 @@ export default function CandidateHubScreen({
                   <div className="hidden md:flex mt-4 pt-2.5 border-t border-slate-100 items-center justify-between text-xs">
                     <span
                       className={`font-semibold ${
-                        isSelected ? "text-blue-700" : "text-slate-500"
+                        isSelected ? "text-blue-700" : "text-slate-600"
                       }`}
                     >
                       {isSelected
                         ? "Viewing Candidate Summary Below"
                         : "Select to View Summary"}
                     </span>
-                    <span className="font-mono text-[11px] font-bold text-slate-600">
+                    <span className="font-mono text-[11px] font-bold text-slate-700">
                       {candidate.pledgeCountInWard.toLocaleString()} Ward Votes
                     </span>
                   </div>
@@ -317,7 +322,7 @@ export default function CandidateHubScreen({
                         className="w-4 h-4 text-emerald-600 shrink-0"
                         aria-label="Verified Candidate Identity"
                       />
-                      <span className="text-xs font-mono text-slate-500">
+                      <span className="text-xs font-mono text-slate-600">
                         {selectedCandidate.roleTitle} •{" "}
                         {selectedCandidate.wardOrDistrict}
                       </span>
@@ -416,7 +421,7 @@ export default function CandidateHubScreen({
               <div className="pt-3.5 border-t border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-3.5">
                 {/* Key Issues */}
                 <div>
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block mb-1.5">
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-slate-600 font-bold block mb-1.5">
                     Key Issues
                   </span>
                   <div className="flex flex-wrap gap-1.5">
@@ -434,7 +439,7 @@ export default function CandidateHubScreen({
 
                 {/* Affiliations: Organizations & Unaffiliated Voters */}
                 <div>
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block mb-1.5">
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-slate-600 font-bold block mb-1.5">
                     Organizations & Unaffiliated Voters
                   </span>
                   <div className="flex flex-wrap gap-1.5">
@@ -472,11 +477,11 @@ export default function CandidateHubScreen({
                 {/* Candidate Files (User-Generated Filenames) */}
                 <div className="space-y-2.5">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
                       <FileText className="w-3.5 h-3.5 text-blue-700" />
                       <span>Files</span>
                     </h3>
-                    <span className="text-[11px] font-mono text-slate-500">
+                    <span className="text-[11px] font-mono text-slate-600">
                       {selectedCandidate.files.length} Candidate Documents
                     </span>
                   </div>
@@ -495,12 +500,12 @@ export default function CandidateHubScreen({
                             <p className="font-mono text-xs font-bold text-slate-900 truncate group-hover:text-blue-700">
                               {file.fileName}
                             </p>
-                            <span className="text-[11px] text-slate-500 font-mono">
+                            <span className="text-[11px] text-slate-600 font-mono">
                               {file.size} • {file.uploadedAt}
                             </span>
                           </div>
                         </div>
-                        <Download className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-700 shrink-0" />
+                        <Download className="w-3.5 h-3.5 text-slate-600 group-hover:text-blue-700 shrink-0" />
                       </div>
                     ))}
                   </div>
@@ -509,10 +514,10 @@ export default function CandidateHubScreen({
                 {/* Official Voting / Civic Record */}
                 <div className="space-y-2.5">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-600">
                       Council & Committee Record
                     </h3>
-                    <span className="text-[11px] font-mono text-slate-500">
+                    <span className="text-[11px] font-mono text-slate-600">
                       Verified Clerk Roll-Call Log
                     </span>
                   </div>
@@ -528,7 +533,7 @@ export default function CandidateHubScreen({
                             <span className="font-mono text-[11px] font-bold px-2 py-0.5 rounded bg-white border border-slate-200 text-slate-800">
                               {rec.code}
                             </span>
-                            <span className="text-xs text-slate-500 font-mono">
+                            <span className="text-xs text-slate-600 font-mono">
                               {rec.date}
                             </span>
                           </div>
@@ -547,7 +552,7 @@ export default function CandidateHubScreen({
 
                 {/* Media */}
                 <div className="space-y-2.5">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
                     <Video className="w-3.5 h-3.5 text-blue-700" />
                     <span>Media</span>
                   </h3>
@@ -615,7 +620,7 @@ export default function CandidateHubScreen({
                                 aria-label="Verified Neighbor Identity"
                               />
                             </div>
-                            <span className="text-[11px] text-slate-500 block">
+                            <span className="text-[11px] text-slate-600 block">
                               {t.relationship} •{" "}
                               <span className="font-mono">{t.postalCode}</span>
                             </span>
@@ -662,16 +667,20 @@ export default function CandidateHubScreen({
                   onSubmit={handleAskQuestion}
                   className="pt-3 border-t border-slate-200/80 space-y-2"
                 >
-                  <label className="block text-xs font-bold text-slate-800">
+                  <label
+                    htmlFor="candidate-question-input"
+                    className="block text-xs font-bold text-slate-800"
+                  >
                     Ask {selectedCandidate.name} a On-The-Record Question
                   </label>
                   <div className="flex gap-2">
                     <input
+                      id="candidate-question-input"
                       type="text"
                       value={questionDraft}
                       onChange={(e) => setQuestionDraft(e.target.value)}
                       placeholder={`Ask ${selectedCandidate.name} about Ward 14...`}
-                      className="flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600"
+                      className="flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 placeholder:text-slate-600 focus:outline-none focus:border-blue-600"
                     />
                     <button
                       type="submit"
@@ -681,7 +690,7 @@ export default function CandidateHubScreen({
                       <span>Ask</span>
                     </button>
                   </div>
-                  <div className="flex items-center justify-between text-[11px] text-slate-500">
+                  <div className="flex items-center justify-between text-[11px] text-slate-600">
                     <span>
                       Verified responses appear in the Ward 14 Summary Feed.
                     </span>

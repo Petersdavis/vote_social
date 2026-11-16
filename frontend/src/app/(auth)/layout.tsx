@@ -63,8 +63,11 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       </header>
 
       {/* Stepper Header */}
-      <div className="w-full mx-auto px-4 pt-8 pb-12 flex-1">
-        <div className="max-w-xl mx-auto mb-6 bg-white rounded-2xl border border-slate-200/90 px-4 py-3 shadow-2xs">
+      <main id="main-content" className="w-full mx-auto px-4 pt-8 pb-12 flex-1">
+        <div
+          aria-label="Waitlist Registration Progress"
+          className="max-w-xl mx-auto mb-6 bg-white rounded-2xl border border-slate-200/90 px-4 py-3 shadow-2xs"
+        >
           <div className="grid grid-cols-3 gap-2 text-xs">
             <div className="flex items-center gap-2 text-emerald-700 font-semibold">
               <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
@@ -77,7 +80,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
                   ? "text-emerald-700"
                   : isAuthStep
                   ? "text-blue-700"
-                  : "text-slate-400"
+                  : "text-slate-600"
               }`}
             >
               {isProfileStep ? (
@@ -96,7 +99,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
                   ? "text-emerald-700"
                   : isProfileStep
                   ? "text-blue-700"
-                  : "text-slate-400"
+                  : "text-slate-600"
               }`}
             >
               {profile?.profileComplete ? (
@@ -106,7 +109,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
                   className={`w-4 h-4 rounded-full text-[10px] font-bold flex items-center justify-center shrink-0 ${
                     isProfileStep
                       ? "bg-blue-700 text-white"
-                      : "bg-slate-200 text-slate-600"
+                      : "bg-slate-200 text-slate-700"
                   }`}
                 >
                   3
@@ -124,10 +127,10 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         >
           {children}
         </div>
-      </div>
+      </main>
 
       {/* Footer */}
-      <footer className="border-t border-slate-200/80 py-4 text-center text-xs text-slate-500">
+      <footer className="border-t border-slate-200/80 py-4 text-center text-xs text-slate-600">
         <div className="max-w-4xl mx-auto px-4 flex items-center justify-center gap-2">
           <ShieldCheck className="w-4 h-4 text-emerald-600" />
           <span>Vote Social • Verified Civic Identity & Neighborhood Forums</span>

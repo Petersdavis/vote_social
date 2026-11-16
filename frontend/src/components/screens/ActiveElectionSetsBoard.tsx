@@ -70,16 +70,21 @@ export default function ActiveElectionSetsBoard({
           </h3>
         </div>
 
-        <div className="flex items-center gap-1.5">
+        <div
+          role="group"
+          aria-label="Filter leaderboard by government tier"
+          className="flex items-center gap-1.5"
+        >
           {(["municipal", "provincial", "federal"] as const).map((tier) => (
             <button
               key={tier}
               type="button"
+              aria-pressed={tierFilter === tier}
               onClick={() => setTierFilter(tier)}
               className={`px-2.5 py-1 rounded-lg text-[11px] font-bold capitalize transition cursor-pointer ${
                 tierFilter === tier
                   ? "bg-slate-900 text-white"
-                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  : "bg-slate-100 text-slate-700 hover:bg-slate-200"
               }`}
             >
               {tier}
@@ -89,7 +94,8 @@ export default function ActiveElectionSetsBoard({
             type="button"
             onClick={() => void loadSets()}
             title="Refresh counts"
-            className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition cursor-pointer"
+            aria-label="Refresh leaderboard counts"
+            className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
           </button>
@@ -97,15 +103,25 @@ export default function ActiveElectionSetsBoard({
       </div>
 
       {loading ? (
-        <div className="py-6 text-center text-xs text-slate-500">
+        <div
+          role="status"
+          aria-live="polite"
+          className="py-6 text-center text-xs text-slate-600"
+        >
           Loading active electoral districts…
         </div>
       ) : filtered.length === 0 ? (
-        <div className="py-6 px-4 rounded-xl bg-slate-50 border border-dashed border-slate-200 text-center text-xs text-slate-500">
+        <div
+          role="status"
+          aria-live="polite"
+          className="py-6 px-4 rounded-xl bg-slate-50 border border-dashed border-slate-200 text-center text-xs text-slate-600"
+        >
           No electoral districts with pending waitlist users in this view yet. Complete your profile with a Canadian postal code to initialize your local districts!
         </div>
       ) : (
-        <div
+        <ol
+          aria-label={`${tierFilter} riding waitlist leaderboard`}
+          aria-live="polite"
           className={`divide-y divide-slate-100 ${
             compact ? "max-h-64 overflow-y-auto" : ""
           }`}
@@ -115,14 +131,14 @@ export default function ActiveElectionSetsBoard({
             const badge = TIER_BADGE_STYLES[item.tier] ?? TIER_BADGE_STYLES.municipal;
 
             return (
-              <div
+              <li
                 key={item.id}
                 className={`py-2.5 px-3 flex items-center justify-between gap-3 rounded-lg ${
                   isHighlighted ? "bg-blue-50/70" : ""
                 }`}
               >
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <span className="w-5 text-xs font-mono font-bold text-slate-400">
+                  <span className="w-5 text-xs font-mono font-bold text-slate-600">
                     #{item.rank}
                   </span>
                   <div className="min-w-0">
@@ -141,8 +157,8 @@ export default function ActiveElectionSetsBoard({
                         </span>
                       )}
                     </div>
-                    <div className="text-[11px] text-slate-500 flex items-center gap-1.5 truncate">
-                      <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
+                    <div className="text-[11px] text-slate-600 flex items-center gap-1.5 truncate">
+                      <MapPin className="w-3 h-3 text-slate-600 shrink-0" />
                       <span className="truncate">
                         {item.boundary_set_name}
                         {item.city
@@ -153,14 +169,17 @@ export default function ActiveElectionSetsBoard({
                   </div>
                 </div>
 
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 text-slate-900 font-mono text-xs font-bold shrink-0">
+                <div
+                  aria-label={`${item.count} waitlist ${item.count === 1 ? "member" : "members"}`}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 text-slate-900 font-mono text-xs font-bold shrink-0"
+                >
                   <Users className="w-3.5 h-3.5 text-blue-700" />
                   <span>{item.count}</span>
                 </div>
-              </div>
+              </li>
             );
           })}
-        </div>
+        </ol>
       )}
     </div>
   );

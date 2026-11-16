@@ -159,7 +159,11 @@ export default function CommunityFeedScreen({
   return (
     <div className="bg-[#FAF8F5] text-slate-900 min-h-full font-sans selection:bg-blue-600 selection:text-white">
       {/* Top App Bar */}
-      <header className="bg-white border-b border-slate-200/90 px-5 py-3.5 flex flex-wrap items-center justify-between gap-4">
+      <div
+        role="region"
+        aria-label="Election Summary App Header"
+        className="bg-white border-b border-slate-200/90 px-5 py-3.5 flex flex-wrap items-center justify-between gap-4"
+      >
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-blue-700 flex items-center justify-center text-white font-bold text-sm shadow-xs">
             VS
@@ -168,7 +172,7 @@ export default function CommunityFeedScreen({
             <span className="font-bold tracking-tight text-slate-900 text-base">
               Vote Social
             </span>
-            <span className="text-[11px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200 font-semibold">
+            <span className="text-[11px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-md bg-blue-50 text-blue-800 border border-blue-200 font-semibold">
               /{normalizedSlug}/summary
             </span>
           </div>
@@ -179,20 +183,20 @@ export default function CommunityFeedScreen({
           <div className="flex items-center gap-2 bg-slate-900 text-white px-3.5 py-1.5 rounded-full text-xs font-medium shadow-xs">
             <MapPin className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
             <span>{formattedMunicipality}</span>
-            <span className="text-slate-400">•</span>
+            <span className="text-slate-300">•</span>
             <span>{VOTER_CONTEXT.wardName}</span>
-            <span className="text-slate-400">•</span>
+            <span className="text-slate-300">•</span>
             <span className="font-mono text-emerald-300">
               {VOTER_CONTEXT.postalCode}
             </span>
           </div>
 
           <div className="hidden sm:flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-900 px-3 py-1.5 rounded-full text-xs font-semibold">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
             <span>1,428 Verified Neighbors in Ward 14</span>
           </div>
         </div>
-      </header>
+      </div>
 
       {/* Main Content Layout */}
       <div
@@ -248,13 +252,14 @@ export default function CommunityFeedScreen({
                   role="button"
                   tabIndex={0}
                   aria-label={`Select candidate ${candidate.name}`}
-                  aria-selected={isSelectedCandidate}
+                  aria-pressed={isSelectedCandidate}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
                       setSelectedCandidateId(candidate.id);
                     }
                   }}
-                  className={`p-3 md:p-4 flex flex-col items-center md:items-stretch justify-center md:justify-between transition cursor-pointer md:cursor-default md:rounded-2xl md:border ${
+                  className={`p-3 md:p-4 flex flex-col items-center md:items-stretch justify-center md:justify-between transition cursor-pointer md:cursor-default md:rounded-2xl md:border focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 ${
                     isSelectedCandidate
                       ? "bg-white ring-2 ring-inset ring-blue-600/20 md:ring-0"
                       : "bg-slate-50/70 hover:bg-white/80"
@@ -273,7 +278,7 @@ export default function CommunityFeedScreen({
                             className={`w-11 h-11 rounded-xl ${candidate.avatarBg} text-white font-bold text-sm flex items-center justify-center shadow-2xs shrink-0 ${
                               isSelectedCandidate
                                 ? "ring-2 ring-offset-2 ring-blue-600 md:ring-0 md:ring-offset-0"
-                                : "opacity-80 md:opacity-100"
+                                : "md:opacity-100"
                             }`}
                           >
                             {candidate.initials}
@@ -300,7 +305,7 @@ export default function CommunityFeedScreen({
                               aria-label="Verified Candidate Identity"
                             />
                           </div>
-                          <span className="text-xs text-slate-500 block">
+                          <span className="text-xs text-slate-600 block">
                             {candidate.roleTitle}
                           </span>
                         </div>
@@ -319,7 +324,7 @@ export default function CommunityFeedScreen({
 
                     {/* Section 1: Badges with Candidate's Key Issues (Hidden on mobile selectable tabs) */}
                     <div className="hidden md:block">
-                      <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block mb-1.5">
+                      <span className="text-[10px] font-mono uppercase tracking-wider text-slate-600 font-bold block mb-1.5">
                         Key Issues
                       </span>
                       <div className="flex flex-wrap gap-1.5">
@@ -357,7 +362,7 @@ export default function CommunityFeedScreen({
 
                     {/* Section 2: Badges with Organisational Supports + Unaffiliated Voters Badge (Hidden on mobile selectable tabs) */}
                     <div className="hidden md:block pt-3 border-t border-slate-100">
-                      <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block mb-1.5">
+                      <span className="text-[10px] font-mono uppercase tracking-wider text-slate-600 font-bold block mb-1.5">
                         Organizational Supports & Unaffiliated Voters
                       </span>
                       <div className="flex flex-wrap gap-1.5">
@@ -427,11 +432,11 @@ export default function CommunityFeedScreen({
                           aria-label="Verified Candidate Identity"
                         />
                       </div>
-                      <span className="text-xs text-slate-500 block">
+                      <span className="text-xs text-slate-600 block">
                         {activeCandidate.roleTitle} •{" "}
                         {activeCandidate.wardOrDistrict}
                       </span>
-                      <p className="text-xs text-slate-600 mt-1">
+                      <p className="text-xs text-slate-700 mt-1">
                         {activeCandidate.tagline}
                       </p>
                     </div>
@@ -452,7 +457,7 @@ export default function CommunityFeedScreen({
 
                 {/* Selected Candidate Key Issues */}
                 <div>
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block mb-1.5">
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-slate-600 font-bold block mb-1.5">
                     Key Issues
                   </span>
                   <div className="flex flex-wrap gap-1.5">
@@ -489,7 +494,7 @@ export default function CommunityFeedScreen({
 
                 {/* Selected Candidate Affiliations (Organizational Supports & Unaffiliated Voters) */}
                 <div className="pt-3 border-t border-slate-100">
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block mb-1.5">
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-slate-600 font-bold block mb-1.5">
                     Organizational Supports & Unaffiliated Voters
                   </span>
                   <div className="flex flex-wrap gap-1.5">
@@ -537,20 +542,21 @@ export default function CommunityFeedScreen({
                   <h2 className="text-base sm:text-lg font-bold text-slate-900">
                     Issue Activity Feed
                   </h2>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-slate-600">
                     Recent activity across issues in {VOTER_CONTEXT.wardName}
                   </p>
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">
                   <div className="relative">
-                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <Search className="w-3.5 h-3.5 text-slate-600 absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
                       type="text"
+                      aria-label="Search issues or policies"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Search issues or policies..."
-                      className="pl-8 pr-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white w-48 sm:w-56"
+                      className="pl-8 pr-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 placeholder:text-slate-600 focus:outline-none focus:border-blue-600 focus:bg-white w-48 sm:w-56"
                     />
                   </div>
                   <button
@@ -624,7 +630,7 @@ export default function CommunityFeedScreen({
                       >
                         <span>Issue: {thread.issueTitle}</span>
                       </button>
-                      <span className="text-xs font-mono text-slate-500">
+                      <span className="text-xs font-mono text-slate-600">
                         • Active {thread.timestamp}
                       </span>
                     </div>
@@ -645,6 +651,8 @@ export default function CommunityFeedScreen({
                       <button
                         type="button"
                         onClick={() => toggleThreadVote(thread.id)}
+                        aria-pressed={isUpvoted}
+                        aria-label={`Upvote issue thread: ${thread.title} (${displayVotes} votes)`}
                         className={`w-12 py-2.5 rounded-xl border flex flex-col items-center justify-center gap-0.5 transition cursor-pointer ${
                           isUpvoted
                             ? "bg-blue-700 text-white border-blue-700 shadow-xs"
@@ -661,7 +669,7 @@ export default function CommunityFeedScreen({
                           {displayVotes}
                         </span>
                       </button>
-                      <span className="text-[10px] font-medium text-slate-400 mt-1 uppercase tracking-wider">
+                      <span className="text-[10px] font-semibold text-slate-600 mt-1 uppercase tracking-wider">
                         Votes
                       </span>
                     </div>
@@ -682,7 +690,7 @@ export default function CommunityFeedScreen({
                             />
                           )}
                         </span>
-                        <span className="text-xs font-mono text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
+                        <span className="text-xs font-mono text-slate-700 bg-slate-100 px-2 py-0.5 rounded">
                           {thread.precinct} ({thread.postalPrefix})
                         </span>
                         <PledgeBadgePill badge={thread.pledgeBadge} />
@@ -699,7 +707,7 @@ export default function CommunityFeedScreen({
                       {/* Policies */}
                       {attachedPolicies.length > 0 && (
                         <div className="mb-4 p-3 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
-                          <div className="flex items-center justify-between gap-2 text-[11px] font-mono uppercase tracking-wider text-slate-500 font-bold">
+                          <div className="flex items-center justify-between gap-2 text-[11px] font-mono uppercase tracking-wider text-slate-600 font-bold">
                             <span className="inline-flex items-center gap-1.5 text-slate-700">
                               <FileText className="w-3.5 h-3.5 text-blue-700" />
                               Policies
@@ -797,13 +805,13 @@ export default function CommunityFeedScreen({
                                       />
                                     )}
                                   </span>
-                                  <span className="text-[11px] font-mono text-slate-500">
+                                  <span className="text-[11px] font-mono text-slate-600">
                                     {reply.precinctOrTitle}
                                   </span>
                                   {reply.pledgeBadge && (
                                     <PledgeBadgePill badge={reply.pledgeBadge} />
                                   )}
-                                  <span className="text-[11px] text-slate-400 ml-auto">
+                                  <span className="text-[11px] text-slate-600 ml-auto">
                                     {reply.timestamp}
                                   </span>
                                 </div>
@@ -817,10 +825,10 @@ export default function CommunityFeedScreen({
                       )}
 
                       {/* Footer Action Bar */}
-                      <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+                      <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600">
                         <div className="flex items-center gap-4">
                           <span className="inline-flex items-center gap-1.5 font-semibold text-slate-700">
-                            <MessageSquare className="w-4 h-4 text-slate-400" />
+                            <MessageSquare className="w-4 h-4 text-slate-600" />
                             {thread.commentCount} Issue Comments
                           </span>
                           <span className="inline-flex items-center gap-1 text-slate-600">
@@ -911,7 +919,7 @@ export default function CommunityFeedScreen({
                     Organization & Voter Guides
                   </h3>
                 </div>
-                <span className="text-[11px] font-mono text-slate-500">
+                <span className="text-[11px] font-mono text-slate-600">
                   {VOTING_ORGANIZATIONS.length} Verified Guides
                 </span>
               </div>
@@ -953,7 +961,7 @@ export default function CommunityFeedScreen({
                               aria-label="Verified Organization Identity"
                             />
                           </div>
-                          <span className="text-[11px] text-slate-500 font-mono block">
+                          <span className="text-[11px] text-slate-600 font-mono block">
                             {org.verifiedDomain} •{" "}
                             {org.subscriberCount.toLocaleString()} Ward Voters
                           </span>

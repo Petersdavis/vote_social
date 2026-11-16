@@ -171,7 +171,7 @@ export default function VerifyEmailPage() {
         </button>
       </div>
 
-      <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+      <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600">
         <span>Waiting for the email to arrive?</span>
         <Link href="/profile" className="font-bold text-blue-700 hover:underline">
           Continue to Profile Setup →

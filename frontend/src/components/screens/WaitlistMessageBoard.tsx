@@ -191,12 +191,21 @@ export default function WaitlistMessageBoard() {
 
       {/* Composer (authenticated users) or Sign-In prompt */}
       {user ? (
-        <form onSubmit={handleSubmit} className="mb-6 bg-slate-50 p-4 rounded-xl border border-slate-200/90 space-y-3">
+        <form
+          aria-label="Community message board composer"
+          onSubmit={handleSubmit}
+          className="mb-6 bg-slate-50 p-4 rounded-xl border border-slate-200/90 space-y-3"
+        >
           <div className="flex flex-wrap items-center justify-between gap-2">
             {/* Public / Feedback Toggle */}
-            <div className="inline-flex rounded-lg bg-slate-200/80 p-1">
+            <div
+              role="group"
+              aria-label="Message visibility mode"
+              className="inline-flex rounded-lg bg-slate-200/80 p-1"
+            >
               <button
                 type="button"
+                aria-pressed={mode === "public"}
                 onClick={() => {
                   setMode("public");
                   setFeedbackSuccess(false);
@@ -204,7 +213,7 @@ export default function WaitlistMessageBoard() {
                 className={`px-3 py-1.5 rounded-md text-xs font-bold inline-flex items-center gap-1.5 transition cursor-pointer ${
                   mode === "public"
                     ? "bg-white text-blue-700 shadow-2xs"
-                    : "text-slate-600 hover:text-slate-900"
+                    : "text-slate-700 hover:text-slate-900"
                 }`}
               >
                 <Globe className="w-3.5 h-3.5" />
@@ -212,6 +221,7 @@ export default function WaitlistMessageBoard() {
               </button>
               <button
                 type="button"
+                aria-pressed={mode === "feedback"}
                 onClick={() => {
                   setMode("feedback");
                   setFeedbackSuccess(false);
@@ -219,7 +229,7 @@ export default function WaitlistMessageBoard() {
                 className={`px-3 py-1.5 rounded-md text-xs font-bold inline-flex items-center gap-1.5 transition cursor-pointer ${
                   mode === "feedback"
                     ? "bg-white text-emerald-700 shadow-2xs"
-                    : "text-slate-600 hover:text-slate-900"
+                    : "text-slate-700 hover:text-slate-900"
                 }`}
               >
                 <Lock className="w-3.5 h-3.5" />
@@ -227,12 +237,18 @@ export default function WaitlistMessageBoard() {
               </button>
             </div>
 
-            <span className="text-xs text-slate-500">
+            <span className="text-xs text-slate-600">
               Posting as <strong className="text-slate-800">{authorPreview}</strong>
             </span>
           </div>
 
+          <label htmlFor="waitlist-message-textarea" className="sr-only">
+            {mode === "public"
+              ? "Public message to the waitlist community"
+              : "Private product feedback for the Vote Social team"}
+          </label>
           <textarea
+            id="waitlist-message-textarea"
             rows={2}
             value={content}
             onChange={(e) => setContent(e.target.value)}
@@ -242,22 +258,28 @@ export default function WaitlistMessageBoard() {
                 ? "Share what local issues or elections matter most in your community..."
                 : "Send private product feedback or feature ideas directly to the Vote Social team..."
             }
-            className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 text-sm text-slate-900 focus:outline-none focus:border-blue-600 resize-none"
+            className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 text-sm text-slate-900 placeholder:text-slate-600 focus:outline-none focus:border-blue-600 resize-none"
           />
 
           {submitError && (
-            <p className="text-xs text-rose-600 font-semibold">{submitError}</p>
+            <p role="alert" className="text-xs text-rose-600 font-semibold">
+              {submitError}
+            </p>
           )}
 
           {feedbackSuccess && mode === "feedback" && (
-            <div className="p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-semibold flex items-center gap-2">
+            <div
+              role="status"
+              aria-live="polite"
+              className="p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-semibold flex items-center gap-2"
+            >
               <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
               <span>Thanks! Your feedback was sent to the team.</span>
             </div>
           )}
 
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] text-slate-500">
+            <span className="text-[11px] text-slate-600">
               {mode === "public"
                 ? "Visible to everyone on the waitlist • You can delete your posts anytime"
                 : ""}
@@ -306,15 +328,27 @@ export default function WaitlistMessageBoard() {
 
       {/* Public Messages Feed (Last 24h, 25 per page) */}
       {loadingInitial ? (
-        <div className="py-8 text-center text-xs text-slate-500">
+        <div
+          role="status"
+          aria-live="polite"
+          className="py-8 text-center text-xs text-slate-600"
+        >
           Loading recent messages…
         </div>
       ) : posts.length === 0 ? (
-        <div className="py-8 px-4 rounded-xl bg-slate-50 border border-dashed border-slate-200 text-center text-xs text-slate-500">
+        <div
+          role="status"
+          aria-live="polite"
+          className="py-8 px-4 rounded-xl bg-slate-50 border border-dashed border-slate-200 text-center text-xs text-slate-600"
+        >
           No public messages yet. Be the first to share what matters in your riding!
         </div>
       ) : (
-        <div className="space-y-2.5">
+        <div
+          aria-live="polite"
+          aria-label="Recent public waitlist messages"
+          className="space-y-2.5"
+        >
           {posts.map((post) => {
             const isOwn = Boolean(user && user.uid === post.authorId);
             const isDeleting = Boolean(deletingIds[post.id]);
@@ -334,7 +368,7 @@ export default function WaitlistMessageBoard() {
                         You
                       </span>
                     )}
-                    <span className="text-[11px] font-mono text-slate-400">
+                    <span className="text-[11px] font-mono text-slate-600">
                       • {formatRelativeTime(post.date_created)}
                     </span>
                   </div>
@@ -349,7 +383,8 @@ export default function WaitlistMessageBoard() {
                     onClick={() => void handleDelete(post)}
                     disabled={isDeleting}
                     title="Delete your public message"
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer shrink-0 disabled:opacity-50"
+                    aria-label={`Delete your public message: ${post.content.slice(0, 50)}`}
+                    className="p-1.5 rounded-lg text-slate-600 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer shrink-0 disabled:opacity-50"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>

@@ -87,7 +87,11 @@ export default function BlogShareBar({
         <span>Share this article</span>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div
+        role="group"
+        aria-label={`Share article: ${title}`}
+        className="flex items-center gap-2"
+      >
         {socialTargets.map((target) => (
           <a
             key={target.id}
@@ -102,12 +106,13 @@ export default function BlogShareBar({
               })
             }
             title={target.label}
-            aria-label={target.label}
-            className="w-8 h-8 rounded-full hover:scale-105 hover:opacity-90 transition inline-flex items-center justify-center shadow-2xs"
+            aria-label={`${target.label}: ${title} (opens in a new tab)`}
+            className="w-8 h-8 rounded-full hover:scale-105 hover:opacity-90 transition inline-flex items-center justify-center shadow-2xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
           >
             <img
               src={target.iconSrc}
-              alt={target.label}
+              alt=""
+              aria-hidden="true"
               width={32}
               height={32}
               className="w-8 h-8 rounded-full block"
@@ -119,10 +124,14 @@ export default function BlogShareBar({
           type="button"
           onClick={() => void handleCopyLink()}
           title={copiedLink ? "Link copied!" : "Copy article link"}
-          aria-label={copiedLink ? "Link copied!" : "Copy article link"}
-          className={`px-3 h-8 rounded-full inline-flex items-center gap-1.5 text-xs font-bold transition cursor-pointer shadow-2xs ${
+          aria-label={
             copiedLink
-              ? "bg-emerald-600 text-white"
+              ? "Article link copied to clipboard"
+              : `Copy link to article: ${title}`
+          }
+          className={`px-3 h-8 rounded-full inline-flex items-center gap-1.5 text-xs font-bold transition cursor-pointer shadow-2xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 ${
+            copiedLink
+              ? "bg-emerald-700 text-white"
               : "bg-slate-200 hover:bg-slate-300 text-slate-700"
           }`}
         >
@@ -138,6 +147,10 @@ export default function BlogShareBar({
             </>
           )}
         </button>
+
+        <span role="status" aria-live="polite" className="sr-only">
+          {copiedLink ? "Article link copied to clipboard." : ""}
+        </span>
       </div>
     </div>
   );

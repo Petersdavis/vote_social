@@ -72,26 +72,32 @@ export default function WaitlistCarousel({
   return (
     <div>
       {/* Carousel Top Controls / Pill Switcher */}
-      <div className="flex items-center justify-center gap-2 mb-6">
+      <div
+        role="group"
+        aria-label="Waitlist and Community Leaderboard View Switcher"
+        className="flex items-center justify-center gap-2 mb-6"
+      >
         <div className="inline-flex items-center rounded-full bg-slate-200/80 p-1 border border-slate-300/60">
           <button
             type="button"
+            aria-pressed={activeSlide === 0}
             onClick={() => selectSlide(0)}
             className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition cursor-pointer ${
               activeSlide === 0
                 ? "bg-white text-slate-900 shadow-2xs"
-                : "text-slate-600 hover:text-slate-900"
+                : "text-slate-700 hover:text-slate-900"
             }`}
           >
             {slide1Label}
           </button>
           <button
             type="button"
+            aria-pressed={activeSlide === 1}
             onClick={() => selectSlide(1)}
             className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition cursor-pointer ${
               activeSlide === 1
                 ? "bg-white text-blue-700 shadow-2xs"
-                : "text-slate-600 hover:text-slate-900"
+                : "text-slate-700 hover:text-slate-900"
             }`}
           >
             {slide2Label}
@@ -115,13 +121,20 @@ export default function WaitlistCarousel({
           {/* ==================== SLIDE 1: PRIMARY CTA ==================== */}
           <div
             ref={slide0Ref}
+            aria-hidden={activeSlide !== 0}
+            inert={activeSlide !== 0 ? true : undefined}
             className="w-full shrink-0 px-1 py-1 text-center"
           >
             {children}
           </div>
 
           {/* ==================== SLIDE 2: LEADERBOARD & CONVERSATION ==================== */}
-          <div ref={slide1Ref} className="w-full shrink-0 px-1 py-1 text-left">
+          <div
+            ref={slide1Ref}
+            aria-hidden={activeSlide !== 1}
+            inert={activeSlide !== 1 ? true : undefined}
+            className="w-full shrink-0 px-1 py-1 text-left"
+          >
             <div className="max-w-3xl mx-auto space-y-6">
               <div className="flex items-center justify-between gap-3">
                 <button
@@ -133,7 +146,7 @@ export default function WaitlistCarousel({
                   <span>{backToSlide1Label}</span>
                 </button>
 
-                <span className="text-xs font-mono uppercase tracking-wider text-slate-500 font-semibold">
+                <span className="text-xs font-mono uppercase tracking-wider text-slate-600 font-semibold">
                   Slide 2 of 2 • Live Community Activity
                 </span>
               </div>
@@ -156,22 +169,24 @@ export default function WaitlistCarousel({
       <div className="mt-6 flex items-center justify-center gap-2">
         <button
           type="button"
-          aria-label={slide1Label}
+          aria-label={`Show ${slide1Label}`}
+          aria-pressed={activeSlide === 0}
           onClick={() => selectSlide(0)}
-          className={`h-2 rounded-full transition-all cursor-pointer ${
+          className={`h-2.5 rounded-full transition-all cursor-pointer ${
             activeSlide === 0
               ? "w-7 bg-blue-700"
-              : "w-2 bg-slate-300 hover:bg-slate-400"
+              : "w-2.5 bg-slate-400 hover:bg-slate-500"
           }`}
         />
         <button
           type="button"
-          aria-label={slide2Label}
+          aria-label={`Show ${slide2Label}`}
+          aria-pressed={activeSlide === 1}
           onClick={() => selectSlide(1)}
-          className={`h-2 rounded-full transition-all cursor-pointer ${
+          className={`h-2.5 rounded-full transition-all cursor-pointer ${
             activeSlide === 1
               ? "w-7 bg-blue-700"
-              : "w-2 bg-slate-300 hover:bg-slate-400"
+              : "w-2.5 bg-slate-400 hover:bg-slate-500"
           }`}
         />
       </div>

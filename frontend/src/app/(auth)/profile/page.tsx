@@ -288,17 +288,17 @@ function ProfileForm() {
           {detailsOpen && (
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2.5 text-sm mb-6">
               <div className="flex items-center justify-between">
-                <span className="text-slate-500 font-medium">Name</span>
+                <span className="text-slate-600 font-medium">Name</span>
                 <span className="font-bold text-slate-900">
                   {firstName} {lastName}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-slate-500 font-medium">Email</span>
+                <span className="text-slate-600 font-medium">Email</span>
                 <span className="font-mono text-xs text-slate-800">{user.email}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-slate-500 font-medium">Postal Code</span>
+                <span className="text-slate-600 font-medium">Postal Code</span>
                 <span className="font-mono font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 text-xs">
                   {formattedCode}
                   {resolvedCity
@@ -309,15 +309,15 @@ function ProfileForm() {
 
               {(selectedMunicipal || selectedProvincial || selectedFederal) && (
                 <div className="pt-2.5 border-t border-slate-200 space-y-1.5">
-                  <span className="block text-[11px] font-mono uppercase tracking-wider text-slate-500 font-bold">
+                  <span className="block text-[11px] font-mono uppercase tracking-wider text-slate-600 font-bold">
                     Verified Political Boundaries
                   </span>
                   {selectedMunicipal && (
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-slate-500">Municipal / Local</span>
+                      <span className="text-slate-600">Municipal / Local</span>
                       <span className="font-semibold text-slate-900">
                         {selectedMunicipal.name}{" "}
-                        <span className="text-slate-500 font-normal">
+                        <span className="text-slate-600 font-normal">
                           ({selectedMunicipal.boundary_set_name})
                         </span>
                       </span>
@@ -325,7 +325,7 @@ function ProfileForm() {
                   )}
                   {selectedProvincial && (
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-slate-500">Provincial Riding</span>
+                      <span className="text-slate-600">Provincial Riding</span>
                       <span className="font-semibold text-slate-900">
                         {selectedProvincial.name}
                       </span>
@@ -333,7 +333,7 @@ function ProfileForm() {
                   )}
                   {selectedFederal && (
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-slate-500">Federal Riding</span>
+                      <span className="text-slate-600">Federal Riding</span>
                       <span className="font-semibold text-slate-900">
                         {selectedFederal.name}
                       </span>
@@ -406,8 +406,8 @@ function ProfileForm() {
                   <Link href="/blog" className="hover:underline">
                     Development Blog
                   </Link>
-                  <span className="text-slate-300">•</span>
-                  <span className="text-slate-500 font-normal">
+                  <span className="text-slate-600">•</span>
+                  <span className="text-slate-600 font-normal">
                     {latestPost.publishedAt}
                   </span>
                 </div>
@@ -424,6 +424,7 @@ function ProfileForm() {
                   href={`/blog/${latestPost.slug}`}
                   target="_blank"
                   rel="noopener noreferrer"
+                  aria-label={`Read article: ${latestPost.title} (opens in a new tab)`}
                   className="px-4 py-2.5 rounded-xl border border-slate-300 bg-slate-50 hover:bg-blue-700 hover:border-blue-700 hover:text-white text-slate-800 text-xs font-bold inline-flex items-center gap-2 transition shadow-2xs"
                 >
                   <span>Read Article</span>
@@ -447,37 +448,44 @@ function ProfileForm() {
             </div>
 
             {/* Switcher Tabs */}
-            <div className="flex flex-wrap items-center gap-2">
+            <div
+              role="group"
+              aria-label="Interactive Screen Demonstration Switcher"
+              className="flex flex-wrap items-center gap-2"
+            >
               <div className="inline-flex bg-white p-1.5 rounded-2xl border border-slate-200 shadow-2xs">
                 <button
                   type="button"
+                  aria-pressed={activeShowcaseTab === 1}
                   onClick={() => setActiveShowcaseTab(1)}
                   className={`px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
                     activeShowcaseTab === 1
                       ? "bg-slate-900 text-white"
-                      : "text-slate-600 hover:text-slate-900"
+                      : "text-slate-700 hover:text-slate-900"
                   }`}
                 >
                   Election Summary
                 </button>
                 <button
                   type="button"
+                  aria-pressed={activeShowcaseTab === 2}
                   onClick={() => setActiveShowcaseTab(2)}
                   className={`px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
                     activeShowcaseTab === 2
                       ? "bg-slate-900 text-white"
-                      : "text-slate-600 hover:text-slate-900"
+                      : "text-slate-700 hover:text-slate-900"
                   }`}
                 >
                   Candidate Profiles
                 </button>
                 <button
                   type="button"
+                  aria-pressed={activeShowcaseTab === 3}
                   onClick={() => setActiveShowcaseTab(3)}
                   className={`px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
                     activeShowcaseTab === 3
                       ? "bg-slate-900 text-white"
-                      : "text-slate-600 hover:text-slate-900"
+                      : "text-slate-700 hover:text-slate-900"
                   }`}
                 >
                   Voter Dashboard
@@ -487,14 +495,21 @@ function ProfileForm() {
           </div>
 
           {/* Browser Window Frame Wrapping Active Mock Screen */}
-          <div className="rounded-3xl border border-slate-300 bg-white shadow-xl overflow-hidden">
+          <div
+            role="region"
+            aria-label="Simulated Browser Window Demonstrating Vote Social"
+            className="rounded-3xl border border-slate-300 bg-white shadow-xl overflow-hidden"
+          >
             {/* Browser Chrome Header */}
-            <div className="bg-slate-900 text-slate-300 px-4 py-2.5 flex items-center justify-between text-xs border-b border-slate-800">
+            <div
+              aria-hidden="true"
+              className="bg-slate-900 text-slate-200 px-4 py-2.5 flex items-center justify-between text-xs border-b border-slate-800"
+            >
               <div className="flex items-center gap-2">
                 <span className="w-3 h-3 rounded-full bg-rose-500/80" />
                 <span className="w-3 h-3 rounded-full bg-amber-400/80" />
                 <span className="w-3 h-3 rounded-full bg-emerald-500/80" />
-                <span className="ml-2 font-mono text-[11px] text-slate-400">
+                <span className="ml-2 font-mono text-[11px] text-slate-300">
                   votesocial.ca/
                   {activeShowcaseTab === 1
                     ? "toronto_2026/summary"
@@ -511,7 +526,7 @@ function ProfileForm() {
             </div>
 
             {/* Active Screen Component */}
-            <div>
+            <div aria-live="polite">
               {activeShowcaseTab === 1 && <CommunityFeedScreen compact />}
               {activeShowcaseTab === 2 && <CandidateHubScreen compact />}
               {activeShowcaseTab === 3 && <ElectionCenterScreen compact />}
@@ -756,7 +771,7 @@ function ProfileForm() {
               {boundaryError}
             </p>
           ) : (
-            <p className="mt-1 text-[11px] text-slate-500">
+            <p className="mt-1 text-[11px] text-slate-600">
               We’ll look up your Municipal Ward, Provincial Riding, and Federal Riding when you continue.
             </p>
           )}
@@ -768,7 +783,7 @@ function ProfileForm() {
             <span className="text-xs font-bold uppercase tracking-wider text-slate-700">
               Optional Civic Roles & Verification
             </span>
-            <span className="text-[11px] text-slate-500">Select any that apply</span>
+            <span className="text-[11px] text-slate-600">Select any that apply</span>
           </div>
 
           {/* 1. Candidate (+ election) */}
@@ -960,14 +975,14 @@ function BoundaryTierSelector({
     return (
       <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/90 flex items-center justify-between gap-3">
         <div>
-          <span className="block text-[11px] font-mono uppercase tracking-wider text-slate-500 font-bold">
+          <span className="block text-[11px] font-mono uppercase tracking-wider text-slate-600 font-bold">
             {tierLabel}
           </span>
           <div className="text-sm font-bold text-slate-900 mt-0.5">
             {only.name}
           </div>
           {showBoundarySetSubtitle && only.boundary_set_name ? (
-            <div className="text-xs text-slate-500">{only.boundary_set_name}</div>
+            <div className="text-xs text-slate-600">{only.boundary_set_name}</div>
           ) : null}
         </div>
         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold shrink-0">
@@ -980,7 +995,11 @@ function BoundaryTierSelector({
 
   // Ambiguous (>1 match): present options on cards side-by-side and require user click
   return (
-    <div className="p-4 rounded-xl bg-amber-50/40 border border-amber-200/90 space-y-3">
+    <div
+      role="group"
+      aria-label={`Select your ${tierLabel}`}
+      className="p-4 rounded-xl bg-amber-50/40 border border-amber-200/90 space-y-3"
+    >
       <div className="flex items-center justify-between gap-2">
         <span className="text-xs font-mono uppercase tracking-wider font-bold text-slate-800">
           {tierLabel}
@@ -1004,6 +1023,7 @@ function BoundaryTierSelector({
             <button
               key={opt.url}
               type="button"
+              aria-pressed={isSelected}
               onClick={() => onSelect(opt)}
               className={`p-3.5 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between gap-2 ${
                 isSelected
@@ -1027,7 +1047,7 @@ function BoundaryTierSelector({
               </div>
 
               {opt.boundary_set_name ? (
-                <div className="text-[11px] text-slate-500 font-normal">
+                <div className="text-[11px] text-slate-600 font-normal">
                   {opt.boundary_set_name}
                 </div>
               ) : null}

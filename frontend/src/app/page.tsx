@@ -103,8 +103,27 @@ export default function WaitlistLandingPage() {
 
   return (
     <div className="min-h-screen bg-[#FAF8F5] text-slate-900 font-sans selection:bg-blue-600 selection:text-white">
+      {/* Keyboard & Screen Reader Skip Navigation Links */}
+      <div className="sr-only focus-within:not-sr-only focus-within:fixed focus-within:top-3 focus-within:left-3 focus-within:z-50 focus-within:flex focus-within:gap-2">
+        <a
+          href="#join-waitlist"
+          className="px-4 py-2.5 rounded-xl bg-blue-700 text-white text-xs font-bold shadow-lg focus:outline-2 focus:outline-offset-2 focus:outline-slate-950"
+        >
+          Skip directly to Waitlist Signup Form
+        </a>
+        <a
+          href="#core-pillars"
+          className="px-4 py-2.5 rounded-xl bg-slate-900 text-white text-xs font-bold shadow-lg focus:outline-2 focus:outline-offset-2 focus:outline-blue-600"
+        >
+          Skip to Platform Features
+        </a>
+      </div>
+
       {/* Top Navigation */}
-      <nav className="sticky top-0 z-40 bg-[#FAF8F5]/90 backdrop-blur-md border-b border-slate-200/80">
+      <nav
+        aria-label="Primary Navigation"
+        className="sticky top-0 z-40 bg-[#FAF8F5]/90 backdrop-blur-md border-b border-slate-200/80"
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-blue-700 text-white font-bold text-sm flex items-center justify-center shadow-xs">
@@ -151,15 +170,16 @@ export default function WaitlistLandingPage() {
         </div>
       </nav>
 
-      {/* =====================================================================
-          HERO SECTION & 2-PAGE CAROUSEL SLIDER
-          Static Hero Headline + Carousel wrapping:
-          Slide 1 (0): Primary Waitlist Signup CTA
-          Slide 2 (1): Leaderboard & Join the Conversation
-         ===================================================================== */}
-      <header className="relative overflow-hidden pt-10 pb-14 lg:pt-14 lg:pb-18 border-b border-slate-200/80">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Static Hero Block */}
+      <main id="main-content">
+        {/* =====================================================================
+            HERO SECTION & 2-PAGE CAROUSEL SLIDER
+            Static Hero Headline + Carousel wrapping:
+            Slide 1 (0): Primary Waitlist Signup CTA
+            Slide 2 (1): Leaderboard & Join the Conversation
+           ===================================================================== */}
+        <header className="relative overflow-hidden pt-10 pb-14 lg:pt-14 lg:pb-18 border-b border-slate-200/80">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            {/* Static Hero Block */}
           <div className="text-center">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-blue-800 text-xs font-semibold mb-6">
               <Sparkles className="w-3.5 h-3.5 text-blue-600" />
@@ -194,7 +214,7 @@ export default function WaitlistLandingPage() {
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-700">
                   Join the Waitlist for Early Access
                 </span>
-                <span className="text-[11px] font-mono text-slate-500">
+                <span className="text-[11px] font-mono text-slate-600">
                   1. Email → 2. Google Auth → 3. Profile
                 </span>
               </div>
@@ -228,16 +248,21 @@ export default function WaitlistLandingPage() {
                 </div>
               ) : (
                 <form
+                  aria-label="Primary Early Access Waitlist Signup"
                   onSubmit={handleHeroSubmit}
                   className="flex flex-col sm:flex-row gap-2.5"
                 >
+                  <label htmlFor="hero-waitlist-email" className="sr-only">
+                    Email address for early access waitlist
+                  </label>
                   <input
+                    id="hero-waitlist-email"
                     type="email"
                     required
                     value={heroEmail}
                     onChange={(e) => setHeroEmail(e.target.value)}
                     placeholder="Enter your email address..."
-                    className="flex-1 px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white"
+                    className="flex-1 px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-900 placeholder:text-slate-600 focus:outline-none focus:border-blue-600 focus:bg-white"
                   />
                   <button
                     type="submit"
@@ -252,11 +277,11 @@ export default function WaitlistLandingPage() {
                 </form>
               )}
 
-              <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500">
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-600">
                 <span>
                   🔒 Zero spam • Complete your civic profile in under 60 seconds
                 </span>
-                <span className="font-mono font-semibold text-emerald-700">
+                <span className="font-mono font-semibold text-emerald-800">
                   {`✨✨ ${((userCount ?? 0) + 15).toLocaleString()} / 2,500 ✨✨ signups to dev launch! 🎉🎉🎉`}
                 </span>
               </div>
@@ -269,7 +294,10 @@ export default function WaitlistLandingPage() {
           DEVELOPMENT BLOG SECTION (LATEST ARTICLE PREVIEW)
          ===================================================================== */}
       {latestPost && (
-        <section className="py-10 lg:py-12 border-b border-slate-200/80 bg-slate-100/50">
+        <section
+          aria-labelledby="dev-blog-heading"
+          className="py-10 lg:py-12 border-b border-slate-200/80 bg-slate-100/50"
+        >
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="rounded-2xl bg-white border border-slate-200/90 p-6 sm:p-8 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6">
               <div className="space-y-2 max-w-3xl">
@@ -277,12 +305,15 @@ export default function WaitlistLandingPage() {
                   <Link href="/blog" className="hover:underline">
                     Development Blog
                   </Link>
-                  <span className="text-slate-300">•</span>
-                  <span className="text-slate-500 font-normal">
+                  <span className="text-slate-600">•</span>
+                  <span className="text-slate-600 font-normal">
                     {latestPost.publishedAt}
                   </span>
                 </div>
-                <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+                <h2
+                  id="dev-blog-heading"
+                  className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight"
+                >
                   {latestPost.title}
                 </h2>
                 <p className="text-sm text-slate-600 leading-relaxed">
@@ -295,6 +326,7 @@ export default function WaitlistLandingPage() {
                   href={`/blog/${latestPost.slug}`}
                   target="_blank"
                   rel="noopener noreferrer"
+                  aria-label={`Read article: ${latestPost.title} (opens in a new tab)`}
                   className="px-4 py-2.5 rounded-xl border border-slate-300 bg-slate-50 hover:bg-blue-700 hover:border-blue-700 hover:text-white text-slate-800 text-xs font-bold inline-flex items-center gap-2 transition shadow-2xs"
                 >
                   <span>Read Article</span>
@@ -311,13 +343,20 @@ export default function WaitlistLandingPage() {
           Matches the Updated Waitlist Layout Structure:
           Screen 1 Preview Graphic | Screen 2 Preview Graphic | Screen 3 Preview Graphic
          ===================================================================== */}
-      <section className="py-14 lg:py-20 border-b border-slate-200/80">
+      <section
+        id="core-pillars"
+        aria-labelledby="core-pillars-heading"
+        className="py-14 lg:py-20 border-b border-slate-200/80"
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto mb-12">
             <span className="text-xs font-mono uppercase tracking-widest text-blue-700 font-bold">
               Platform Architecture • 3 Core Pillars
             </span>
-            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mt-1">
+            <h2
+              id="core-pillars-heading"
+              className="text-2xl sm:text-3xl font-bold text-slate-900 mt-1"
+            >
               Built for Transparent Local Democracy
             </h2>
             <p className="text-sm text-slate-600 mt-1.5">
@@ -327,7 +366,7 @@ export default function WaitlistLandingPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-7 items-stretch">
             {/* ==================== COLUMN 1: ELECTION SUMMARY ==================== */}
-            <div
+            <article
               onClick={() => setActiveShowcaseTab(1)}
               className={`group rounded-2xl bg-white border transition flex flex-col justify-between overflow-hidden cursor-pointer ${
                 activeShowcaseTab === 1
@@ -336,8 +375,11 @@ export default function WaitlistLandingPage() {
               }`}
             >
               <div>
-                {/* Screen 1 Miniature Graphic Preview */}
-                <div className="bg-slate-900 p-4 border-b border-slate-200 h-[196px] flex flex-col">
+                {/* Screen 1 Miniature Graphic Preview (Decorative Thumbnail) */}
+                <div
+                  aria-hidden="true"
+                  className="bg-slate-900 p-4 border-b border-slate-200 h-[196px] flex flex-col"
+                >
                   <div className="flex items-center justify-between text-[11px] text-slate-300 mb-3 shrink-0">
                     <span className="font-mono font-bold text-emerald-400">
                       01 • ELECTION SUMMARY
@@ -444,15 +486,25 @@ export default function WaitlistLandingPage() {
                 </div>
               </div>
 
-              <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-xs font-bold">
+              <button
+                type="button"
+                aria-pressed={activeShowcaseTab === 1}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setActiveShowcaseTab(1);
+                }}
+                className="w-full px-6 py-4 bg-slate-50 hover:bg-blue-50/50 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-left cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-blue-700"
+              >
                 <span className="text-blue-700">
-                  {activeShowcaseTab === 1 ? "● Active in Preview Below" : "Click to Preview Below"}
+                  {activeShowcaseTab === 1
+                    ? "● Active in Preview Below (Election Summary)"
+                    : "Preview Election Summary Below"}
                 </span>
-              </div>
-            </div>
+              </button>
+            </article>
 
             {/* ==================== COLUMN 2: CANDIDATE PROFILES ==================== */}
-            <div
+            <article
               onClick={() => setActiveShowcaseTab(2)}
               className={`group rounded-2xl bg-white border transition flex flex-col justify-between overflow-hidden cursor-pointer ${
                 activeShowcaseTab === 2
@@ -461,8 +513,11 @@ export default function WaitlistLandingPage() {
               }`}
             >
               <div>
-                {/* Screen 2 Miniature Graphic Preview */}
-                <div className="bg-slate-900 p-4 border-b border-slate-200 h-[196px] flex flex-col">
+                {/* Screen 2 Miniature Graphic Preview (Decorative Thumbnail) */}
+                <div
+                  aria-hidden="true"
+                  className="bg-slate-900 p-4 border-b border-slate-200 h-[196px] flex flex-col"
+                >
                   <div className="flex items-center justify-between text-[11px] text-slate-300 mb-3 shrink-0">
                     <span className="font-mono font-bold text-blue-400">
                       02 • CANDIDATE PROFILES
@@ -483,19 +538,19 @@ export default function WaitlistLandingPage() {
                             Your Vote
                           </span>
                         </div>
-                        <div className="text-slate-500 mt-0.5 truncate">
+                        <div className="text-slate-600 mt-0.5 truncate">
                           Housing • MNM (740)
                         </div>
                       </div>
                       <div className="p-2">
                         <div className="font-bold text-slate-700">D. Kowalski</div>
-                        <div className="text-slate-500 mt-0.5 truncate">
+                        <div className="text-slate-600 mt-0.5 truncate">
                           Budget • DSBA (620)
                         </div>
                       </div>
                       <div className="p-2">
                         <div className="font-bold text-slate-700">Priya Nair</div>
-                        <div className="text-slate-500 mt-0.5 truncate">
+                        <div className="text-slate-600 mt-0.5 truncate">
                           Climate • EETU (440)
                         </div>
                       </div>
@@ -568,15 +623,25 @@ export default function WaitlistLandingPage() {
                 </div>
               </div>
 
-              <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-xs font-bold">
+              <button
+                type="button"
+                aria-pressed={activeShowcaseTab === 2}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setActiveShowcaseTab(2);
+                }}
+                className="w-full px-6 py-4 bg-slate-50 hover:bg-blue-50/50 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-left cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-blue-700"
+              >
                 <span className="text-blue-700">
-                  {activeShowcaseTab === 2 ? "● Active in Preview Below" : "Click to Preview Below"}
+                  {activeShowcaseTab === 2
+                    ? "● Active in Preview Below (Candidate Comparison)"
+                    : "Preview Candidate Comparison Below"}
                 </span>
-              </div>
-            </div>
+              </button>
+            </article>
 
             {/* ==================== COLUMN 3: VOTER DASHBOARD ==================== */}
-            <div
+            <article
               onClick={() => setActiveShowcaseTab(3)}
               className={`group rounded-2xl bg-white border transition flex flex-col justify-between overflow-hidden cursor-pointer ${
                 activeShowcaseTab === 3
@@ -585,8 +650,11 @@ export default function WaitlistLandingPage() {
               }`}
             >
               <div>
-                {/* Screen 3 Miniature Graphic Preview */}
-                <div className="bg-slate-900 p-4 border-b border-slate-200 h-[196px] flex flex-col">
+                {/* Screen 3 Miniature Graphic Preview (Decorative Thumbnail) */}
+                <div
+                  aria-hidden="true"
+                  className="bg-slate-900 p-4 border-b border-slate-200 h-[196px] flex flex-col"
+                >
                   <div className="flex items-center justify-between text-[11px] text-slate-300 mb-3 shrink-0">
                     <span className="font-mono font-bold text-amber-400">
                       03 • VOTER DASHBOARD
@@ -673,12 +741,22 @@ export default function WaitlistLandingPage() {
                 </div>
               </div>
 
-              <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-xs font-bold">
+              <button
+                type="button"
+                aria-pressed={activeShowcaseTab === 3}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setActiveShowcaseTab(3);
+                }}
+                className="w-full px-6 py-4 bg-slate-50 hover:bg-blue-50/50 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-left cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-blue-700"
+              >
                 <span className="text-blue-700">
-                  {activeShowcaseTab === 3 ? "● Active in Preview Below" : "Click to Preview Below"}
+                  {activeShowcaseTab === 3
+                    ? "● Active in Preview Below (Voter Dashboard)"
+                    : "Preview Voter Dashboard Below"}
                 </span>
-              </div>
-            </div>
+              </button>
+            </article>
           </div>
         </div>
       </section>
@@ -686,50 +764,73 @@ export default function WaitlistLandingPage() {
       {/* =====================================================================
           INTERACTIVE HIGH-FIDELITY SCREEN SHOWCASE (LIVE EMBED OF ALL 3 SCREENS)
          ===================================================================== */}
-      <section className="py-12 lg:py-16 bg-slate-100/80 border-b border-slate-200/90">
+      <section
+        id="interactive-preview"
+        aria-labelledby="interactive-preview-heading"
+        className="py-12 lg:py-16 bg-slate-100/80 border-b border-slate-200/90"
+      >
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="sr-only focus-within:not-sr-only focus-within:mb-4">
+            <a
+              href="#secondary-waitlist-cta"
+              className="inline-flex px-4 py-2 rounded-xl bg-blue-700 text-white text-xs font-bold shadow-xs"
+            >
+              Skip interactive demonstration controls to Bottom Waitlist Signup Form
+            </a>
+          </div>
+
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
             <div>
               <span className="text-xs font-mono font-bold uppercase tracking-wider text-blue-700">
                 Interactive Platform Preview
               </span>
-              <h2 className="text-2xl font-bold text-slate-900">
+              <h2
+                id="interactive-preview-heading"
+                className="text-2xl font-bold text-slate-900"
+              >
                 Explore the 3 Live Screens
               </h2>
             </div>
 
             {/* Switcher Tabs */}
-            <div className="flex flex-wrap items-center gap-2">
+            <div
+              role="group"
+              aria-label="Interactive Screen Demonstration Switcher"
+              className="flex flex-wrap items-center gap-2"
+            >
               <div className="inline-flex bg-white p-1.5 rounded-2xl border border-slate-200 shadow-2xs">
                 <button
                   type="button"
+                  aria-pressed={activeShowcaseTab === 1}
                   onClick={() => setActiveShowcaseTab(1)}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition ${
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
                     activeShowcaseTab === 1
                       ? "bg-slate-900 text-white"
-                      : "text-slate-600 hover:text-slate-900"
+                      : "text-slate-700 hover:text-slate-900"
                   }`}
                 >
                   Election Summary
                 </button>
                 <button
                   type="button"
+                  aria-pressed={activeShowcaseTab === 2}
                   onClick={() => setActiveShowcaseTab(2)}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition ${
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
                     activeShowcaseTab === 2
                       ? "bg-slate-900 text-white"
-                      : "text-slate-600 hover:text-slate-900"
+                      : "text-slate-700 hover:text-slate-900"
                   }`}
                 >
                   Candidate Profiles
                 </button>
                 <button
                   type="button"
+                  aria-pressed={activeShowcaseTab === 3}
                   onClick={() => setActiveShowcaseTab(3)}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition ${
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
                     activeShowcaseTab === 3
                       ? "bg-slate-900 text-white"
-                      : "text-slate-600 hover:text-slate-900"
+                      : "text-slate-700 hover:text-slate-900"
                   }`}
                 >
                   Voter Dashboard
@@ -739,14 +840,21 @@ export default function WaitlistLandingPage() {
           </div>
 
           {/* Browser Window Frame Wrapping Active Mock Screen */}
-          <div className="rounded-3xl border border-slate-300 bg-white shadow-xl overflow-hidden">
+          <div
+            role="region"
+            aria-label="Simulated Browser Window Demonstrating Vote Social"
+            className="rounded-3xl border border-slate-300 bg-white shadow-xl overflow-hidden"
+          >
             {/* Browser Chrome Header */}
-            <div className="bg-slate-900 text-slate-300 px-4 py-2.5 flex items-center justify-between text-xs border-b border-slate-800">
+            <div
+              aria-hidden="true"
+              className="bg-slate-900 text-slate-200 px-4 py-2.5 flex items-center justify-between text-xs border-b border-slate-800"
+            >
               <div className="flex items-center gap-2">
                 <span className="w-3 h-3 rounded-full bg-rose-500/80" />
                 <span className="w-3 h-3 rounded-full bg-amber-400/80" />
                 <span className="w-3 h-3 rounded-full bg-emerald-500/80" />
-                <span className="ml-2 font-mono text-[11px] text-slate-400">
+                <span className="ml-2 font-mono text-[11px] text-slate-300">
                   votesocial.ca/
                   {activeShowcaseTab === 1
                     ? "toronto_2026/summary"
@@ -761,7 +869,7 @@ export default function WaitlistLandingPage() {
             </div>
 
             {/* Active Screen Component */}
-            <div>
+            <div aria-live="polite">
               {activeShowcaseTab === 1 && <CommunityFeedScreen compact />}
               {activeShowcaseTab === 2 && <CandidateHubScreen compact />}
               {activeShowcaseTab === 3 && <ElectionCenterScreen compact />}
@@ -774,12 +882,19 @@ export default function WaitlistLandingPage() {
           SECONDARY CTA FORM
           [ Secondary CTA Form ]
          ===================================================================== */}
-      <section className="py-16 lg:py-20 bg-slate-950 text-white">
+      <section
+        id="secondary-waitlist-cta"
+        aria-labelledby="secondary-cta-heading"
+        className="py-16 lg:py-20 bg-slate-950 text-white"
+      >
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-950 border border-blue-800 text-blue-300 text-xs font-mono uppercase tracking-wider mb-4">
             <Sparkles className="w-3.5 h-3.5" /> Bring Vote Social to Your Riding or Municipality
           </span>
-          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white mb-4">
+          <h2
+            id="secondary-cta-heading"
+            className="text-3xl sm:text-4xl font-bold tracking-tight text-white mb-4"
+          >
             Ready to make local democracy social, informed, and actionable?
           </h2>
           <p className="text-slate-300 text-sm sm:text-base max-w-2xl mx-auto mb-8">
@@ -802,16 +917,21 @@ export default function WaitlistLandingPage() {
               </div>
             ) : (
               <form
+                aria-label="Secondary Early Access Waitlist Signup"
                 onSubmit={handleFooterSubmit}
                 className="flex flex-col sm:flex-row gap-3"
               >
+                <label htmlFor="footer-waitlist-email" className="sr-only">
+                  Email address for early access waitlist
+                </label>
                 <input
+                  id="footer-waitlist-email"
                   type="email"
                   required
                   value={footerEmail}
                   onChange={(e) => setFooterEmail(e.target.value)}
                   placeholder="Enter your email address..."
-                  className="flex-1 px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-500"
+                  className="flex-1 px-4 py-3 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:border-blue-400"
                 />
                 <button
                   type="submit"
@@ -824,6 +944,7 @@ export default function WaitlistLandingPage() {
           </div>
         </div>
       </section>
+      </main>
     </div>
   );
 }

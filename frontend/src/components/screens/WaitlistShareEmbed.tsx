@@ -90,7 +90,11 @@ export default function WaitlistShareEmbed({
         </div>
 
         {/* Clickable Social Media Image Links + Link Chain Copy Button */}
-        <div className="flex items-center gap-2.5">
+        <div
+          role="group"
+          aria-label={`Share Vote Social waitlist invite${locationPhrase}`}
+          className="flex items-center gap-2.5"
+        >
           {socialTargets.map((target) => (
             <a
               key={target.id}
@@ -99,12 +103,13 @@ export default function WaitlistShareEmbed({
               rel="noopener noreferrer"
               onClick={() => trackEvent("share", { method: target.id })}
               title={target.label}
-              aria-label={target.label}
-              className="w-8 h-8 rounded-full hover:scale-105 hover:opacity-90 transition inline-flex items-center justify-center shadow-2xs"
+              aria-label={`${target.label}${locationPhrase} (opens in a new tab)`}
+              className="w-8 h-8 rounded-full hover:scale-105 hover:opacity-90 transition inline-flex items-center justify-center shadow-2xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
             >
               <img
                 src={target.iconSrc}
-                alt={target.label}
+                alt=""
+                aria-hidden="true"
                 width={32}
                 height={32}
                 className="w-8 h-8 rounded-full block"
@@ -116,10 +121,14 @@ export default function WaitlistShareEmbed({
             type="button"
             onClick={() => void handleCopyLink()}
             title={copiedLink ? "Link copied!" : "Copy share link"}
-            aria-label={copiedLink ? "Link copied!" : "Copy share link"}
-            className={`w-8 h-8 rounded-full inline-flex items-center justify-center transition cursor-pointer shadow-2xs ${
+            aria-label={
               copiedLink
-                ? "bg-emerald-600 text-white"
+                ? "Referral share link copied to clipboard"
+                : `Copy referral share link${locationPhrase}`
+            }
+            className={`w-8 h-8 rounded-full inline-flex items-center justify-center transition cursor-pointer shadow-2xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 ${
+              copiedLink
+                ? "bg-emerald-700 text-white"
                 : "bg-slate-200 hover:bg-slate-300 text-slate-700"
             }`}
           >
@@ -129,12 +138,16 @@ export default function WaitlistShareEmbed({
               <Link2 className="w-4 h-4" />
             )}
           </button>
+
+          <span role="status" aria-live="polite" className="sr-only">
+            {copiedLink ? "Referral share link copied to clipboard." : ""}
+          </span>
         </div>
       </div>
 
       {/* Rich Link Preview Card */}
       <div className="rounded-xl border border-slate-200 bg-[#FAF8F5] p-3.5 space-y-1.5">
-        <div className="flex items-center justify-between gap-2 text-[11px] font-mono text-slate-500">
+        <div className="flex items-center justify-between gap-2 text-[11px] font-mono text-slate-600">
           <span className="truncate">{hostname}</span>
           <span className="px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 font-semibold">
             Link Preview
