@@ -51,6 +51,7 @@ export async function generateMetadata({
     },
     openGraph: {
       type: "article",
+      locale: "en_CA",
       siteName: SITE_NAME,
       url: articleUrl,
       title: `${post.title} — ${SITE_NAME}`,
@@ -60,9 +61,10 @@ export async function generateMetadata({
       tags: post.tags,
       images: [
         {
-          url: "/og-image.png",
+          url: canonicalUrl("/og-image.png"),
           width: 1200,
           height: 630,
+          type: "image/png",
           alt: `${post.title} — ${SITE_NAME}`,
         },
       ],

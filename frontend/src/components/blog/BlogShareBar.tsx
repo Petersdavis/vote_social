@@ -21,7 +21,10 @@ export default function BlogShareBar({
 
   useEffect(() => {
     if (typeof window !== "undefined" && window.location) {
-      setOrigin(window.location.origin);
+      const host = window.location.hostname;
+      if (host !== "localhost" && host !== "127.0.0.1") {
+        setOrigin(window.location.origin);
+      }
     }
   }, []);
 

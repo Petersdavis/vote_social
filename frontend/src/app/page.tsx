@@ -4,7 +4,6 @@ import React, { useEffect, useState } from "react";
 import {
   ArrowBigUp,
   ArrowRight,
-  BadgeCheck,
   Building2,
   Calendar,
   CheckCircle2,
@@ -17,8 +16,6 @@ import {
   MessageSquare,
   ShieldCheck,
   Sparkles,
-  Users,
-  Video,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -43,7 +40,7 @@ export default function WaitlistLandingPage() {
   const router = useRouter();
   const { user, profile } = useAuth();
   const [activeShowcaseTab, setActiveShowcaseTab] = useState<1 | 2 | 3>(1);
-  const [userCount, setUserCount] = useState<number | null>(null);
+  const [userCount, setUserCount] = useState<number | null>(15);
   const [heroEmail, setHeroEmail] = useState("");
   const [heroSubmitted, setHeroSubmitted] = useState(false);
 
