@@ -15,12 +15,22 @@ export const metadata: Metadata = {
     title: "Join Your Community on the Vote Social Waitlist",
     description:
       "Confirm your local Municipal Ward, Provincial Riding, and Federal Riding on Vote Social and see how many neighbors in your community have joined the waitlist.",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        type: "image/png",
+        alt: "Join Your Community on the Vote Social Waitlist",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "Join Your Community on the Vote Social Waitlist",
     description:
       "Confirm your local Municipal Ward, Provincial Riding, and Federal Riding on Vote Social and see how many neighbors in your community have joined the waitlist.",
+    images: ["/og-image.png"],
   },
 };
 

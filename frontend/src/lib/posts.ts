@@ -1,40 +1,16 @@
 /**
  * Waitlist Message Board & Feedback persistence (`user -> post` relationship).
  *
- * Uses two subcollections under `users/{userId}` queried as collection groups:
- *  - `users/{userId}/public_posts/{postId}`: Globally readable via
- *    `collectionGroup("public_posts")`, writable & deletable by the author.
- *  - `users/{userId}/feedback_posts/{postId}`: Read/writable only by the author
- *    (fire-and-forget feedback from the UI).
- *
- * Both collection groups are indexed on `date_created` (see `firestore.indexes.json`).
- * Each post duplicates the user's `first_name last_name` into `author` to avoid
- * N+1 user profile lookups, while also recording `authorId`.
+ * Uses lazy-loaded Firestore via `loadFirebaseFirestore()` so `firebase/firestore`
+ * is split out of the initial page bundle.
  */
 
 import type { User } from "firebase/auth";
-import {
-  Timestamp,
-  addDoc,
-  collection,
-  collectionGroup,
-  deleteDoc,
-  doc,
-  getDocs,
-  limit,
-  onSnapshot,
-  orderBy,
-  query,
-  serverTimestamp,
-  startAfter,
-  where,
-  type DocumentData,
-  type QueryDocumentSnapshot,
-} from "firebase/firestore";
+import type { DocumentData, QueryDocumentSnapshot } from "firebase/firestore";
 
 import { USERS_COLLECTION, type UserProfile } from "./auth";
 import { trackEvent } from "./analytics";
-import { getFirebaseFirestore } from "./firebase";
+import { loadFirebaseFirestore } from "./firebase";
 
 export const PUBLIC_POSTS_SUBCOLLECTION = "public_posts";
 export const FEEDBACK_POSTS_SUBCOLLECTION = "feedback_posts";
@@ -96,7 +72,8 @@ export async function createWaitlistPost(params: {
     throw new Error("Message cannot be empty.");
   }
 
-  const db = getFirebaseFirestore();
+  const { db, firestoreModule } = await loadFirebaseFirestore();
+  const { addDoc, collection, serverTimestamp } = firestoreModule;
   const author = formatPostAuthorName(params.user, params.profile);
   const subcollectionName =
     params.mode === "public"
@@ -131,7 +108,18 @@ export async function fetchRecentPublicPosts(options?: {
   pageSize?: number;
   cutoffDate?: Date;
 }): Promise<FetchPublicPostsResult> {
-  const db = getFirebaseFirestore();
+  const { db, firestoreModule } = await loadFirebaseFirestore();
+  const {
+    Timestamp,
+    collectionGroup,
+    getDocs,
+    limit,
+    orderBy,
+    query,
+    startAfter,
+    where,
+  } = firestoreModule;
+
   const pageSize = options?.pageSize ?? WAITLIST_MESSAGES_PAGE_SIZE;
   const cutoff =
     options?.cutoffDate ?? new Date(Date.now() - TWENTY_FOUR_HOURS_MS);
@@ -144,16 +132,17 @@ export async function fetchRecentPublicPosts(options?: {
     limit(pageSize),
   ];
 
-  const q = query(collectionGroup(db, PUBLIC_POSTS_SUBCOLLECTION), ...constraints);
+  const q = query(
+    collectionGroup(db, PUBLIC_POSTS_SUBCOLLECTION),
+    ...constraints,
+  );
   const snapshot = await getDocs(q);
 
   const posts: WaitlistPost[] = snapshot.docs.map((docSnap) => {
     const data = docSnap.data();
     const rawTs = data.date_created;
     const createdDate =
-      rawTs instanceof Timestamp
-        ? rawTs.toDate()
-        : new Date();
+      rawTs instanceof Timestamp ? rawTs.toDate() : new Date();
 
     return {
       id: docSnap.id,
@@ -178,63 +167,93 @@ export async function fetchRecentPublicPosts(options?: {
 
 /**
  * Subscribe in real time to the newest public waitlist messages from the last 24 hours.
- * Automatically fires when new posts are created or deleted.
  */
-export function subscribeToRecentPublicPosts(
-  options: {
-    pageSize?: number;
-    cutoffDate?: Date;
-    onUpdate: (result: FetchPublicPostsResult) => void;
-    onError?: (error: Error) => void;
-  },
-): () => void {
-  const db = getFirebaseFirestore();
-  const pageSize = options.pageSize ?? WAITLIST_MESSAGES_PAGE_SIZE;
-  const cutoff =
-    options.cutoffDate ?? new Date(Date.now() - TWENTY_FOUR_HOURS_MS);
-  const cutoffTimestamp = Timestamp.fromDate(cutoff);
+export function subscribeToRecentPublicPosts(options: {
+  pageSize?: number;
+  cutoffDate?: Date;
+  onUpdate: (result: FetchPublicPostsResult) => void;
+  onError?: (error: Error) => void;
+}): () => void {
+  let cancelled = false;
+  let unsubscribeSnapshot: (() => void) | undefined;
 
-  const q = query(
-    collectionGroup(db, PUBLIC_POSTS_SUBCOLLECTION),
-    where("date_created", ">=", cutoffTimestamp),
-    orderBy("date_created", "desc"),
-    limit(pageSize),
-  );
+  void loadFirebaseFirestore()
+    .then(({ db, firestoreModule }) => {
+      if (cancelled) return;
+      const {
+        Timestamp,
+        collectionGroup,
+        limit,
+        onSnapshot,
+        orderBy,
+        query,
+        where,
+      } = firestoreModule;
 
-  return onSnapshot(
-    q,
-    (snapshot) => {
-      const posts: WaitlistPost[] = snapshot.docs.map((docSnap) => {
-        const data = docSnap.data();
-        const rawTs = data.date_created;
-        const createdDate =
-          rawTs instanceof Timestamp ? rawTs.toDate() : new Date();
+      const pageSize = options.pageSize ?? WAITLIST_MESSAGES_PAGE_SIZE;
+      const cutoff =
+        options.cutoffDate ?? new Date(Date.now() - TWENTY_FOUR_HOURS_MS);
+      const cutoffTimestamp = Timestamp.fromDate(cutoff);
 
-        return {
-          id: docSnap.id,
-          author:
-            typeof data.author === "string" ? data.author : "Waitlist Member",
-          authorId: typeof data.authorId === "string" ? data.authorId : "",
-          content: typeof data.content === "string" ? data.content : "",
-          date_created: createdDate,
-        };
-      });
+      const q = query(
+        collectionGroup(db, PUBLIC_POSTS_SUBCOLLECTION),
+        where("date_created", ">=", cutoffTimestamp),
+        orderBy("date_created", "desc"),
+        limit(pageSize),
+      );
 
-      const lastDoc =
-        snapshot.docs.length > 0
-          ? snapshot.docs[snapshot.docs.length - 1]
-          : null;
+      unsubscribeSnapshot = onSnapshot(
+        q,
+        (snapshot) => {
+          if (cancelled) return;
+          const posts: WaitlistPost[] = snapshot.docs.map((docSnap) => {
+            const data = docSnap.data();
+            const rawTs = data.date_created;
+            const createdDate =
+              rawTs instanceof Timestamp ? rawTs.toDate() : new Date();
 
-      options.onUpdate({
-        posts,
-        lastDoc,
-        hasMore: snapshot.docs.length === pageSize,
-      });
-    },
-    (error) => {
-      options.onError?.(error);
-    },
-  );
+            return {
+              id: docSnap.id,
+              author:
+                typeof data.author === "string"
+                  ? data.author
+                  : "Waitlist Member",
+              authorId: typeof data.authorId === "string" ? data.authorId : "",
+              content: typeof data.content === "string" ? data.content : "",
+              date_created: createdDate,
+            };
+          });
+
+          const lastDoc =
+            snapshot.docs.length > 0
+              ? snapshot.docs[snapshot.docs.length - 1]
+              : null;
+
+          options.onUpdate({
+            posts,
+            lastDoc,
+            hasMore: snapshot.docs.length === pageSize,
+          });
+        },
+        (error) => {
+          if (!cancelled) {
+            options.onError?.(error);
+          }
+        },
+      );
+    })
+    .catch((error) => {
+      if (!cancelled) {
+        options.onError?.(
+          error instanceof Error ? error : new Error(String(error)),
+        );
+      }
+    });
+
+  return () => {
+    cancelled = true;
+    unsubscribeSnapshot?.();
+  };
 }
 
 /**
@@ -244,7 +263,8 @@ export async function deleteOwnPublicPost(
   authorId: string,
   postId: string,
 ): Promise<void> {
-  const db = getFirebaseFirestore();
+  const { db, firestoreModule } = await loadFirebaseFirestore();
+  const { deleteDoc, doc } = firestoreModule;
   const ref = doc(
     db,
     USERS_COLLECTION,

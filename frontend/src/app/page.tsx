@@ -9,6 +9,7 @@ import {
   Calendar,
   CheckCircle2,
   Compass,
+  ExternalLink,
   FileText,
   Flag,
   Layers,
@@ -19,15 +20,24 @@ import {
   Users,
   Video,
 } from "lucide-react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import CommunityFeedScreen from "@/components/screens/CommunityFeedScreen";
-import CandidateHubScreen from "@/components/screens/CandidateHubScreen";
-import ElectionCenterScreen from "@/components/screens/ElectionCenterScreen";
 import WaitlistCarousel from "@/components/screens/WaitlistCarousel";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { subscribeToPublicUserCount } from "@/lib/leaderboard";
 import { submitEmailWaitlist } from "@/lib/waitlist";
+import { BLOG_POSTS } from "@/data/blogPosts";
+
+const CommunityFeedScreen = dynamic(
+  () => import("@/components/screens/CommunityFeedScreen"),
+);
+const CandidateHubScreen = dynamic(
+  () => import("@/components/screens/CandidateHubScreen"),
+);
+const ElectionCenterScreen = dynamic(
+  () => import("@/components/screens/ElectionCenterScreen"),
+);
 
 export default function WaitlistLandingPage() {
   const router = useRouter();
@@ -39,6 +49,7 @@ export default function WaitlistLandingPage() {
 
   const [footerEmail, setFooterEmail] = useState("");
   const [footerSubmitted, setFooterSubmitted] = useState(false);
+  const latestPost = BLOG_POSTS[0];
 
   useEffect(() => {
     const unsubscribe = subscribeToPublicUserCount(
@@ -246,13 +257,52 @@ export default function WaitlistLandingPage() {
                   🔒 Zero spam • Complete your civic profile in under 60 seconds
                 </span>
                 <span className="font-mono font-semibold text-emerald-700">
-                  {`✨✨ ${(userCount ?? 0 + 15).toLocaleString()} / 2,500 ✨✨ signups to dev launch! 🎉🎉🎉`}
+                  {`✨✨ ${((userCount ?? 0) + 15).toLocaleString()} / 2,500 ✨✨ signups to dev launch! 🎉🎉🎉`}
                 </span>
               </div>
             </div>
           </WaitlistCarousel>
         </div>
       </header>
+
+      {/* =====================================================================
+          DEVELOPMENT BLOG SECTION (LATEST ARTICLE PREVIEW)
+         ===================================================================== */}
+      {latestPost && (
+        <section className="py-10 lg:py-12 border-b border-slate-200/80 bg-slate-100/50">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="rounded-2xl bg-white border border-slate-200/90 p-6 sm:p-8 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div className="space-y-2 max-w-3xl">
+                <div className="flex items-center gap-2.5 text-xs font-mono uppercase tracking-widest text-blue-700 font-bold">
+                  <span>Development Blog</span>
+                  <span className="text-slate-300">•</span>
+                  <span className="text-slate-500 font-normal">
+                    {latestPost.publishedAt}
+                  </span>
+                </div>
+                <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+                  {latestPost.title}
+                </h2>
+                <p className="text-sm text-slate-600 leading-relaxed">
+                  {latestPost.subtitle}
+                </p>
+              </div>
+
+              <div className="shrink-0">
+                <Link
+                  href="/blog"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2.5 rounded-xl border border-slate-300 bg-slate-50 hover:bg-blue-700 hover:border-blue-700 hover:text-white text-slate-800 text-xs font-bold inline-flex items-center gap-2 transition shadow-2xs"
+                >
+                  <span>Read Article</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* =====================================================================
           THREE-COLUMN SCREEN PREVIEW GRAPHICS & FEATURE BREAKDOWN

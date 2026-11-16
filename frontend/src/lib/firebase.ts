@@ -1,57 +1,73 @@
-import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
-import { getAuth, connectAuthEmulator, type Auth } from "firebase/auth";
-import { getFirestore, connectFirestoreEmulator, type Firestore } from "firebase/firestore";
-import { getStorage, connectStorageEmulator, type FirebaseStorage } from "firebase/storage";
+import type { FirebaseApp } from "firebase/app";
+import type { Auth } from "firebase/auth";
+import type { Firestore } from "firebase/firestore";
 
 import { firebaseConfig, useFirebaseEmulators } from "./env";
 
 /**
- * Firebase client SDK singleton.
+ * Lazy-loaded Firebase client SDK singletons.
  *
- * Initialization is lazy and idempotent so it is safe to import from any
- * client component without creating duplicate apps during hot reload.
+ * Uses dynamic `import()` so `firebase/app`, `firebase/auth`, and
+ * `firebase/firestore` are code-split out of the initial page bundle and
+ * fetched asynchronously after first paint.
  */
 
-let app: FirebaseApp | undefined;
-let auth: Auth | undefined;
-let db: Firestore | undefined;
-let storage: FirebaseStorage | undefined;
+let appPromise: Promise<FirebaseApp> | undefined;
+let authPromise:
+  | Promise<{ auth: Auth; authModule: typeof import("firebase/auth") }>
+  | undefined;
+let firestorePromise:
+  | Promise<{
+      db: Firestore;
+      firestoreModule: typeof import("firebase/firestore");
+    }>
+  | undefined;
 
-function getFirebaseApp(): FirebaseApp {
-  if (!app) {
-    app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+export function loadFirebaseApp(): Promise<FirebaseApp> {
+  if (!appPromise) {
+    appPromise = import("firebase/app").then(
+      ({ initializeApp, getApps, getApp }) =>
+        getApps().length > 0 ? getApp() : initializeApp(firebaseConfig),
+    );
   }
-  return app;
+  return appPromise;
 }
 
-export function getFirebaseAuth(): Auth {
-  if (!auth) {
-    auth = getAuth(getFirebaseApp());
-    if (useFirebaseEmulators) {
-      connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true });
-    }
+export function loadFirebaseAuth(): Promise<{
+  auth: Auth;
+  authModule: typeof import("firebase/auth");
+}> {
+  if (!authPromise) {
+    authPromise = Promise.all([loadFirebaseApp(), import("firebase/auth")]).then(
+      ([app, authModule]) => {
+        const auth = authModule.getAuth(app);
+        if (useFirebaseEmulators) {
+          authModule.connectAuthEmulator(auth, "http://127.0.0.1:9099", {
+            disableWarnings: true,
+          });
+        }
+        return { auth, authModule };
+      },
+    );
   }
-  return auth;
+  return authPromise;
 }
 
-export function getFirebaseFirestore(): Firestore {
-  if (!db) {
-    db = getFirestore(getFirebaseApp());
-    if (useFirebaseEmulators) {
-      connectFirestoreEmulator(db, "127.0.0.1", 8080);
-    }
+export function loadFirebaseFirestore(): Promise<{
+  db: Firestore;
+  firestoreModule: typeof import("firebase/firestore");
+}> {
+  if (!firestorePromise) {
+    firestorePromise = Promise.all([
+      loadFirebaseApp(),
+      import("firebase/firestore"),
+    ]).then(([app, firestoreModule]) => {
+      const db = firestoreModule.getFirestore(app);
+      if (useFirebaseEmulators) {
+        firestoreModule.connectFirestoreEmulator(db, "127.0.0.1", 8080);
+      }
+      return { db, firestoreModule };
+    });
   }
-  return db;
+  return firestorePromise;
 }
-
-export function getFirebaseStorage(): FirebaseStorage {
-  if (!storage) {
-    storage = getStorage(getFirebaseApp());
-    if (useFirebaseEmulators) {
-      connectStorageEmulator(storage, "127.0.0.1", 9199);
-    }
-  }
-  return storage;
-}
-
-export { getFirebaseApp };

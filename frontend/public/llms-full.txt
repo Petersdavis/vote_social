@@ -1,0 +1,86 @@
+# Vote Social — Full Documentation for LLMs & AI Search (`llms-full.txt`)
+
+> Canonical URL: https://vote-social.ca/
+> Summary File: https://vote-social.ca/llms.txt
+> Geographic Scope: Canada (Municipal Wards, Regional Councils, School Boards, Provincial Ridings, and Federal Electoral Districts)
+> Tagline: "Democracy is Social. Knowledge is Power. Politics is Local."
+
+---
+
+## 1. Executive Summary
+
+**Vote Social** is a civic social platform for Canadian elections designed to solve local information overload, low municipal/riding awareness, and political spin. It brings together three core groups in one verified, bot-free digital public square:
+
+1. **Voters & Verified Neighbors**
+2. **Candidates & Grassroots Campaigns**
+3. **Voting Blocks, Unions & Community Organizations**
+
+Unlike traditional social networks driven by algorithmic outrage or partisan ad networks that harvest voter data, Vote Social is structured as a transparent, non-partisan civic utility with a strict **Zero-Data-Selling Privacy Guarantee** (zero data sales to political parties, zero tracking of personal voting intentions for marketers, and zero robocalls).
+
+---
+
+## 2. The Three Core Platform Screens
+
+### Screen 1: Election Summary
+Aimed at resolving voter information overload, low local awareness, and political spin:
+- **Instant Ballot Preview**: Enter your postal code to see a clean, factual profile of every candidate running in your exact ward or riding.
+- **A True "Wikipedia for Elections"**: Access a non-partisan, non-profit public square owned by the public interest—not political parties or corporate shareholders.
+- **5-Minute Voter Preparedness**: Skip hours of dead-end searches and get everything you need to cast an informed vote in one place.
+- **Precision Voting Alerts**: Get customized reminders for registration deadlines, advance voting days, and your exact polling station.
+
+### Screen 2: Candidate Comparison
+Aimed at giving voters effortless local clarity, fact-based evaluations, and direct accountability:
+- **Side-by-Side Issue Comparisons**: Skip the spin and compare candidate stances head-to-head on local issues like housing, transit, and property taxes.
+- **Substantive Policy Blueprints**: Read clear, concise breakdowns of proposed policy actions instead of empty slogans and attack ads.
+- **Transparent Endorsements**: See exactly which local advocacy groups, community organizations, and unions are backing each candidate.
+- **Direct Candidate Q&A**: Ask questions directly to local candidates and review their public, on-the-record answers before you vote.
+
+### Screen 3: Voter Dashboard
+Aimed at keeping citizens engaged, protecting their privacy, and empowering their voice beyond Election Day:
+- **Verified, Bot-Free & Private**: Engage in a strictly moderated forum of verified local neighbors with zero bots, zero data sales, and zero robocalls.
+- **Community Micro-Polling**: Weigh in on neighborhood polls to show candidates where locals actually stand long before Election Day.
+- **Tailored Issue Feed**: Filter your dashboard strictly by the local topics you care about most so you can ignore the noise.
+- **Post-Election Promise Tracker**: Track elected officials after they take office to see if they actually fulfill their campaign pledges.
+
+---
+
+## 3. Core Domain Model: Global Issues vs. Scoped Local Policies
+
+To make Canadian multi-tier federalism intuitive for everyday voters, Vote Social separates civic topics into two linked layers:
+
+1. **Global Issues**: Top-level subjects that affect daily life (e.g., *Housing & Gentle Density*, *Transit & Complete Streets*, *Parks & Community Safety*, *Main Streets & Local Budget*, *Healthcare Access*).
+2. **Jurisdiction-Scoped Policies ("Who Controls What?")**: Concrete policy proposals fixed to a specific governance tier (`Municipal`, `Regional`, `Provincial`, or `Federal`) and electoral boundary (e.g., *City of Toronto*, *Province of Ontario*, *Government of Canada*).
+
+When a voter enters their Canadian postal code, Vote Social resolves their exact Municipal Ward, Provincial Electoral District, and Federal Riding (using the OpenNorth Represent civic boundary API) so they only see policies and candidates relevant to their actual ballot.
+
+---
+
+## 4. Capabilities by User Group
+
+### For Voters & Neighbors
+- **Instant Postal-to-Ballot Lookup**: Map a 6-character Canadian postal code to all active Municipal, Provincial, and Federal races.
+- **Standardized Candidate Dossiers**: Inspect candidate CVs, resumes, past council roll-call voting records, debate video clips, and standardized policy stances (*Strong Support*, *Conditional Support*, *Phased Approach*, *Opposes*).
+- **Trusted Community Voter Guides**: View endorsed candidate slates from verified local advocacy groups, tenant unions, ratepayer associations, and business improvement associations (BIAs), complete with live counts of aligned ward voters.
+- **1-Click Grassroots Actions**: Pledge voting support, request a physical lawn sign or window poster in one click, or RSVP to local canvass events.
+- **Polling Place & Voter ID Logistics**: View walking maps to assigned polling stations, advance voting hours, and accepted Voter ID checklists.
+
+### For Candidates & Campaigns
+- **Verified Campaign Profiles**: Claim and manage official candidate pages via domain (`DNS TXT`) and identity verification.
+- **"Publish Once, Cite Everywhere" Surveys**: Answer standardized local policy surveys once and have official stances cited across neighborhood forum threads.
+- **On-the-Record Constituent Q&A**: Post highlighted, badge-verified official responses to top-voted constituent questions.
+- **Geo-Tagged Lawn Sign & Volunteer Queues**: Receive pre-verified lawn sign requests and volunteer RSVPs organized by postal zone.
+
+### For Voting Blocks & Community Organizations
+- **Scorecard & Endorsed Slate Publishing**: Publish candidate grades and endorsed slates that surface directly on voters' Election Summary and Candidate Comparison screens.
+- **Verified Coalition Counters**: Demonstrate real-time, audited ward supporter counts to candidates and local media.
+- **Boundary-Scoped Mobilization Alerts**: Publish policy briefings, town halls, and advance-voting reminders into followers' personalized Election Calendars.
+
+### For Journalists & Researchers
+- **Riding-by-Riding Issue Velocity**: Track which local issues and policies are gaining the fastest upvote momentum among verified constituents.
+- **On-the-Record Quote & Roll-Call Archive**: Search timestamped records of candidate survey responses, forum answers, and past council votes.
+
+---
+
+## 5. Early Access Waitlist
+
+Vote Social is currently capturing early access signups at **https://vote-social.ca/** (with full platform development launching at 2,500 verified signups). Voters, candidates, organization representatives, and journalists can join the waitlist in under 60 seconds and see live community leaderboard counts for their municipal ward, provincial riding, and federal electoral district.

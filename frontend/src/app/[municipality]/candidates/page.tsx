@@ -52,11 +52,21 @@ export async function generateMetadata({
       title: `${title} | ${SITE_NAME}`,
       description,
       url,
+      images: [
+        {
+          url: "/og-image.png",
+          width: 1200,
+          height: 630,
+          type: "image/png",
+          alt: `${title} | ${SITE_NAME}`,
+        },
+      ],
     },
     twitter: {
       card: "summary_large_image",
       title: `${title} | ${SITE_NAME}`,
       description,
+      images: ["/og-image.png"],
     },
   };
 }

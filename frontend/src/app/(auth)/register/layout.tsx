@@ -15,12 +15,22 @@ export const metadata: Metadata = {
     title: "Join the Vote Social Early Access Waitlist",
     description:
       "Connect with verified neighbors in your ward, compare candidates side-by-side on local policy surveys, and track every election in one place.",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        type: "image/png",
+        alt: "Join the Vote Social Early Access Waitlist",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "Join the Vote Social Early Access Waitlist",
     description:
       "Connect with verified neighbors in your ward, compare candidates side-by-side on local policy surveys, and track every election in one place.",
+    images: ["/og-image.png"],
   },
 };
 

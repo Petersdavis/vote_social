@@ -30,8 +30,11 @@ const structuredDataJsonLd = {
       url: SITE_URL,
       logo: {
         "@type": "ImageObject",
-        url: canonicalUrl("/favicon.png"),
+        url: canonicalUrl("/icon-512.png"),
+        width: 512,
+        height: 512,
       },
+      image: canonicalUrl("/og-image.png"),
       description: SITE_DESCRIPTION,
     },
     {
@@ -53,6 +56,7 @@ const structuredDataJsonLd = {
       applicationCategory: "CivicEngagementApplication",
       operatingSystem: "All",
       description: SITE_DESCRIPTION,
+      image: canonicalUrl("/og-image.png"),
       inLanguage: "en-CA",
     },
   ],
@@ -69,9 +73,15 @@ export const metadata: Metadata = {
   manifest: "/manifest.webmanifest",
   category: "civic engagement",
   icons: {
-    icon: [{ url: "/favicon.png", type: "image/png" }],
-    shortcut: ["/favicon.png"],
-    apple: ["/favicon.png"],
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/favicon.png", sizes: "48x48", type: "image/png" },
+      { url: "/favicon.ico", sizes: "any" },
+    ],
+    shortcut: ["/favicon.ico"],
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
   },
   keywords: [
     "Vote Social",
@@ -106,7 +116,10 @@ export const metadata: Metadata = {
     url: canonicalUrl("/"),
     images: [
       {
-        url: "/favicon.png",
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        type: "image/png",
         alt: SITE_TITLE,
       },
     ],
@@ -115,7 +128,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
-    images: ["/favicon.png"],
+    images: ["/og-image.png"],
   },
 };
 
@@ -155,6 +168,18 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: JSON.stringify(structuredDataJsonLd),
           }}
+        />
+        <link
+          rel="alternate"
+          type="text/plain"
+          href="/llms.txt"
+          title="LLM Summary Documentation"
+        />
+        <link
+          rel="alternate"
+          type="text/plain"
+          href="/llms-full.txt"
+          title="LLM Full Documentation"
         />
       </head>
       <body className="min-h-full flex flex-col bg-[#FAF8F5] text-slate-900">

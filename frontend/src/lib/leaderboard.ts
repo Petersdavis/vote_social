@@ -1,23 +1,13 @@
 /**
- * Sparse ElectionSet Waitlist Counters (`electionSets/{setId}`).
+ * Sparse ElectionSet Waitlist Counters (`electionSets/{setId}`) & Public Metadata.
  *
- * Queries only election sets with `count > 0` pending users, sorted by count
- * descending and grouped or badged by governance tier (`municipal`,
- * `provincial`, `federal`).
+ * Uses lazy-loaded Firestore via `loadFirebaseFirestore()` so `firebase/firestore`
+ * is split out of the initial page bundle.
  */
 
-import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  onSnapshot,
-  query,
-  where,
-} from "firebase/firestore";
-
 import { ELECTION_SETS_COLLECTION } from "./auth";
-import { getFirebaseFirestore } from "./firebase";
+import { firebaseConfig, useFirebaseEmulators } from "./env";
+import { loadFirebaseFirestore } from "./firebase";
 import type { GovernanceTierSlug, UserElectionSet } from "./opennorth";
 import { getCommunityLabel, ONTARIO_COMMUNITIES } from "./ontario-communities";
 import { absoluteUrl } from "./site";
@@ -27,10 +17,39 @@ export const PUBLIC_METADATA_COLLECTION = "public_metadata";
 export const PUBLIC_STATS_DOC_ID = "stats";
 
 /**
- * Fetch the global user count from `public_metadata/stats` (`user_count`).
+ * Fetch the global user count from `public_metadata/stats` (`user_count`) using
+ * the lightweight Firestore REST endpoint so the landing page does not have to
+ * download the full 580 KB `firebase/firestore` SDK just to display the counter.
  */
 export async function fetchPublicUserCount(): Promise<number> {
-  const db = getFirebaseFirestore();
+  if (!useFirebaseEmulators && firebaseConfig.projectId) {
+    const url = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(
+      firebaseConfig.projectId,
+    )}/databases/(default)/documents/${PUBLIC_METADATA_COLLECTION}/${PUBLIC_STATS_DOC_ID}`;
+    const res = await fetch(url);
+    if (res.status === 404) {
+      return 0;
+    }
+    if (res.ok) {
+      const json = (await res.json()) as {
+        fields?: {
+          user_count?: { integerValue?: string; doubleValue?: number };
+        };
+      };
+      const intVal = json.fields?.user_count?.integerValue;
+      const dblVal = json.fields?.user_count?.doubleValue;
+      const parsed =
+        typeof intVal === "string"
+          ? Number.parseInt(intVal, 10)
+          : typeof dblVal === "number"
+          ? dblVal
+          : 0;
+      return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+    }
+  }
+
+  const { db, firestoreModule } = await loadFirebaseFirestore();
+  const { doc, getDoc } = firestoreModule;
   const ref = doc(db, PUBLIC_METADATA_COLLECTION, PUBLIC_STATS_DOC_ID);
   const snapshot = await getDoc(ref);
   if (!snapshot.exists()) {
@@ -41,30 +60,30 @@ export async function fetchPublicUserCount(): Promise<number> {
 }
 
 /**
- * Subscribe in real time to `public_metadata/stats.user_count`.
+ * Fetch `public_metadata/stats.user_count` without pulling in `firebase/firestore`
+ * on initial page load.
  */
 export function subscribeToPublicUserCount(
   onUpdate: (count: number) => void,
   onError?: (error: Error) => void,
 ): () => void {
-  const db = getFirebaseFirestore();
-  const ref = doc(db, PUBLIC_METADATA_COLLECTION, PUBLIC_STATS_DOC_ID);
-  return onSnapshot(
-    ref,
-    (snapshot) => {
-      if (!snapshot.exists()) {
-        onUpdate(0);
-        return;
+  let cancelled = false;
+
+  void fetchPublicUserCount()
+    .then((count) => {
+      if (!cancelled) {
+        onUpdate(count);
       }
-      const raw = snapshot.get("user_count");
-      const count =
-        typeof raw === "number" && Number.isFinite(raw) && raw >= 0 ? raw : 0;
-      onUpdate(count);
-    },
-    (error) => {
-      onError?.(error);
-    },
-  );
+    })
+    .catch((error) => {
+      if (!cancelled) {
+        onError?.(error instanceof Error ? error : new Error(String(error)));
+      }
+    });
+
+  return () => {
+    cancelled = true;
+  };
 }
 
 /** A sparse `electionSets/{id}` document with > 0 pending waitlist users. */
@@ -77,8 +96,11 @@ export interface ActiveElectionSetCounter extends UserElectionSet {
  * Fetch all sparse `electionSets` with `count > 0` pending users from Firestore,
  * sorted by count (descending) and then alphabetically by name.
  */
-export async function fetchActiveElectionSets(): Promise<ActiveElectionSetCounter[]> {
-  const db = getFirebaseFirestore();
+export async function fetchActiveElectionSets(): Promise<
+  ActiveElectionSetCounter[]
+> {
+  const { db, firestoreModule } = await loadFirebaseFirestore();
+  const { collection, getDocs, query, where } = firestoreModule;
   const q = query(
     collection(db, ELECTION_SETS_COLLECTION),
     where("count", ">", 0),
@@ -106,9 +128,12 @@ export async function fetchActiveElectionSets(): Promise<ActiveElectionSetCounte
       url: typeof data.url === "string" ? data.url : "",
       name: typeof data.name === "string" ? data.name : docSnap.id,
       boundary_set_name:
-        typeof data.boundary_set_name === "string" ? data.boundary_set_name : "",
+        typeof data.boundary_set_name === "string"
+          ? data.boundary_set_name
+          : "",
       tier,
-      external_id: typeof data.external_id === "string" ? data.external_id : null,
+      external_id:
+        typeof data.external_id === "string" ? data.external_id : null,
       city: typeof data.city === "string" ? data.city : null,
       province: typeof data.province === "string" ? data.province : null,
       count,
@@ -155,15 +180,19 @@ export function rankCommunities(
 }
 
 export async function fetchLeaderboard(): Promise<LeaderboardEntry[]> {
-  const db = getFirebaseFirestore();
+  const { db, firestoreModule } = await loadFirebaseFirestore();
+  const { collection, getDocs } = firestoreModule;
   const snapshot = await getDocs(collection(db, WAITLIST_COUNTS_COLLECTION));
 
   const counts = new Map<string, number>();
-  snapshot.forEach((doc) => {
-    const data = doc.data() as { community?: unknown; count?: unknown };
-    const community = typeof data.community === "string" ? data.community : doc.id;
+  snapshot.forEach((docSnap) => {
+    const data = docSnap.data() as { community?: unknown; count?: unknown };
+    const community =
+      typeof data.community === "string" ? data.community : docSnap.id;
     const count =
-      typeof data.count === "number" && Number.isFinite(data.count) ? data.count : 0;
+      typeof data.count === "number" && Number.isFinite(data.count)
+        ? data.count
+        : 0;
     counts.set(community, count);
   });
 

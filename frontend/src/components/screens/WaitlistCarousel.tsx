@@ -1,9 +1,15 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import ActiveElectionSetsBoard from "@/components/screens/ActiveElectionSetsBoard";
-import WaitlistMessageBoard from "@/components/screens/WaitlistMessageBoard";
+import dynamic from "next/dynamic";
+import { ChevronLeft } from "lucide-react";
+
+const ActiveElectionSetsBoard = dynamic(
+  () => import("@/components/screens/ActiveElectionSetsBoard"),
+);
+const WaitlistMessageBoard = dynamic(
+  () => import("@/components/screens/WaitlistMessageBoard"),
+);
 
 interface WaitlistCarouselProps {
   /** Pill label for Slide 1, e.g. "1 • Join the Waitlist" or "1 • Invite Neighbors" */
@@ -26,11 +32,19 @@ export default function WaitlistCarousel({
   children,
 }: WaitlistCarouselProps) {
   const [activeSlide, setActiveSlide] = useState<0 | 1>(0);
+  const [slide2Visited, setSlide2Visited] = useState(false);
   const [carouselHeight, setCarouselHeight] = useState<number | undefined>(
     undefined,
   );
   const slide0Ref = useRef<HTMLDivElement>(null);
   const slide1Ref = useRef<HTMLDivElement>(null);
+
+  const selectSlide = (slide: 0 | 1) => {
+    if (slide === 1) {
+      setSlide2Visited(true);
+    }
+    setActiveSlide(slide);
+  };
 
   useEffect(() => {
     const activeSlideEl =
@@ -62,7 +76,7 @@ export default function WaitlistCarousel({
         <div className="inline-flex items-center rounded-full bg-slate-200/80 p-1 border border-slate-300/60">
           <button
             type="button"
-            onClick={() => setActiveSlide(0)}
+            onClick={() => selectSlide(0)}
             className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition cursor-pointer ${
               activeSlide === 0
                 ? "bg-white text-slate-900 shadow-2xs"
@@ -73,7 +87,7 @@ export default function WaitlistCarousel({
           </button>
           <button
             type="button"
-            onClick={() => setActiveSlide(1)}
+            onClick={() => selectSlide(1)}
             className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition cursor-pointer ${
               activeSlide === 1
                 ? "bg-white text-blue-700 shadow-2xs"
@@ -112,7 +126,7 @@ export default function WaitlistCarousel({
               <div className="flex items-center justify-between gap-3">
                 <button
                   type="button"
-                  onClick={() => setActiveSlide(0)}
+                  onClick={() => selectSlide(0)}
                   className="px-3.5 py-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-xs font-bold text-slate-700 inline-flex items-center gap-1.5 transition cursor-pointer"
                 >
                   <ChevronLeft className="w-4 h-4 text-blue-700" />
@@ -124,11 +138,15 @@ export default function WaitlistCarousel({
                 </span>
               </div>
 
-              <ActiveElectionSetsBoard
-                highlightIds={highlightElectionSetIds}
-                compact
-              />
-              <WaitlistMessageBoard />
+              {(slide2Visited || activeSlide === 1) && (
+                <>
+                  <ActiveElectionSetsBoard
+                    highlightIds={highlightElectionSetIds}
+                    compact
+                  />
+                  <WaitlistMessageBoard />
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -139,7 +157,7 @@ export default function WaitlistCarousel({
         <button
           type="button"
           aria-label={slide1Label}
-          onClick={() => setActiveSlide(0)}
+          onClick={() => selectSlide(0)}
           className={`h-2 rounded-full transition-all cursor-pointer ${
             activeSlide === 0
               ? "w-7 bg-blue-700"
@@ -149,7 +167,7 @@ export default function WaitlistCarousel({
         <button
           type="button"
           aria-label={slide2Label}
-          onClick={() => setActiveSlide(1)}
+          onClick={() => selectSlide(1)}
           className={`h-2 rounded-full transition-all cursor-pointer ${
             activeSlide === 1
               ? "w-7 bg-blue-700"

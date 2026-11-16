@@ -1,36 +1,15 @@
 /**
  * Firebase Authentication & Waitlist Profile helpers.
  *
- * All auth is client-side: the frontend is a fully static export, so there is
- * no request-time server. The Firebase SDK manages ID-token refresh and
- * persistence (localStorage by default) on its own.
+ * Uses lazy-loaded Firebase Auth and Firestore (`loadFirebaseAuth`,
+ * `loadFirebaseFirestore`) so the heavy Firebase SDK chunks are split out of
+ * the initial entry bundle.
  */
 
-import {
-  GoogleAuthProvider,
-  createUserWithEmailAndPassword,
-  onAuthStateChanged,
-  onIdTokenChanged,
-  sendEmailVerification,
-  signInWithEmailAndPassword,
-  signInWithPopup,
-  signOut,
-  updateProfile,
-  type Auth,
-  type User,
-  type UserCredential,
-} from "firebase/auth";
-import {
-  doc,
-  getDoc,
-  increment,
-  runTransaction,
-  serverTimestamp,
-  setDoc,
-} from "firebase/firestore";
+import type { User, UserCredential } from "firebase/auth";
 
-import { getFirebaseAuth, getFirebaseFirestore } from "./firebase";
 import { trackEvent } from "./analytics";
+import { loadFirebaseAuth, loadFirebaseFirestore } from "./firebase";
 import {
   buildUserElectionSets,
   type PoliticalBoundaryOption,
@@ -112,18 +91,12 @@ export interface ProfileInput {
 /** OAuth providers supported by the registration/login UI. */
 export type OAuthProviderId = "google";
 
-function auth(): Auth {
-  return getFirebaseAuth();
-}
-
 /**
  * Create the `users/{uid}` profile document if it does not already exist.
- *
- * Idempotent: safe to call on every sign-in. Uses `getDoc` first so we never
- * clobber fields written by later flows.
  */
 export async function ensureUserProfile(user: User): Promise<void> {
-  const db = getFirebaseFirestore();
+  const { db, firestoreModule } = await loadFirebaseFirestore();
+  const { doc, getDoc, serverTimestamp, setDoc } = firestoreModule;
   const ref = doc(db, USERS_COLLECTION, user.uid);
   const snapshot = await getDoc(ref);
 
@@ -164,13 +137,18 @@ async function ensureUserProfileSafely(user: User): Promise<void> {
 
 /**
  * Persist the Vote Social waitlist profile captured after authentication.
- *
- * Records the user's confirmed district memberships (`users/{uid}.election_set_ids`
- * and `electionSets/{setId}/members/{uid}`) and creates/increments each
- * `electionSets/{setId}` counter when the user joins.
  */
-export async function saveUserProfile(user: User, input: ProfileInput): Promise<void> {
-  const db = getFirebaseFirestore();
+export async function saveUserProfile(
+  user: User,
+  input: ProfileInput,
+): Promise<void> {
+  const [{ db, firestoreModule }, { authModule }] = await Promise.all([
+    loadFirebaseFirestore(),
+    loadFirebaseAuth(),
+  ]);
+  const { doc, increment, runTransaction, serverTimestamp } = firestoreModule;
+  const { updateProfile } = authModule;
+
   const userRef = doc(db, USERS_COLLECTION, user.uid);
   const first_name = input.first_name.trim();
   const last_name = input.last_name.trim();
@@ -178,13 +156,19 @@ export async function saveUserProfile(user: User, input: ProfileInput): Promise<
   const displayName = [first_name, last_name].filter(Boolean).join(" ");
 
   const is_candidate = Boolean(input.is_candidate);
-  const candidate_election = is_candidate ? input.candidate_election.trim() : null;
+  const candidate_election = is_candidate
+    ? input.candidate_election.trim()
+    : null;
 
   const is_org_representative = Boolean(input.is_org_representative);
-  const organization_name = is_org_representative ? input.organization_name.trim() : null;
+  const organization_name = is_org_representative
+    ? input.organization_name.trim()
+    : null;
 
   const is_journalist = Boolean(input.is_journalist);
-  const published_article_url = is_journalist ? input.published_article_url.trim() : null;
+  const published_article_url = is_journalist
+    ? input.published_article_url.trim()
+    : null;
 
   const confirmedSets = buildUserElectionSets({
     municipal: input.municipal_district,
@@ -195,11 +179,16 @@ export async function saveUserProfile(user: User, input: ProfileInput): Promise<
   });
 
   await runTransaction(db, async (tx) => {
-    // Read electionSets and membership docs first (Firestore transactions require all reads before writes)
     const setStates = await Promise.all(
       confirmedSets.map(async (item) => {
         const setRef = doc(db, ELECTION_SETS_COLLECTION, item.id);
-        const memberRef = doc(db, ELECTION_SETS_COLLECTION, item.id, "members", user.uid);
+        const memberRef = doc(
+          db,
+          ELECTION_SETS_COLLECTION,
+          item.id,
+          "members",
+          user.uid,
+        );
         const [setSnap, memberSnap] = await Promise.all([
           tx.get(setRef),
           tx.get(memberRef),
@@ -214,7 +203,6 @@ export async function saveUserProfile(user: User, input: ProfileInput): Promise<
       }),
     );
 
-    // Create (if required) and increment each electionSet when the user joins it
     for (const { item, setRef, memberRef, setExists, alreadyMember } of setStates) {
       if (!alreadyMember) {
         tx.set(memberRef, {
@@ -292,8 +280,11 @@ export async function saveUserProfile(user: User, input: ProfileInput): Promise<
 /**
  * Read the `users/{uid}` profile document, or null when it does not exist.
  */
-export async function fetchUserProfile(user: User): Promise<UserProfile | null> {
-  const db = getFirebaseFirestore();
+export async function fetchUserProfile(
+  user: User,
+): Promise<UserProfile | null> {
+  const { db, firestoreModule } = await loadFirebaseFirestore();
+  const { doc, getDoc } = firestoreModule;
   const ref = doc(db, USERS_COLLECTION, user.uid);
   const snapshot = await getDoc(ref);
   if (!snapshot.exists()) {
@@ -308,7 +299,9 @@ export async function signUpWithEmail(
   password: string,
   displayName?: string,
 ): Promise<UserCredential> {
-  const credential = await createUserWithEmailAndPassword(auth(), email, password);
+  const { auth, authModule } = await loadFirebaseAuth();
+  const { createUserWithEmailAndPassword, updateProfile } = authModule;
+  const credential = await createUserWithEmailAndPassword(auth, email, password);
 
   if (displayName) {
     await updateProfile(credential.user, { displayName });
@@ -320,15 +313,24 @@ export async function signUpWithEmail(
 }
 
 /** Sign in with email + password, ensuring a profile document exists. */
-export async function signInWithEmail(email: string, password: string): Promise<UserCredential> {
-  const credential = await signInWithEmailAndPassword(auth(), email, password);
+export async function signInWithEmail(
+  email: string,
+  password: string,
+): Promise<UserCredential> {
+  const { auth, authModule } = await loadFirebaseAuth();
+  const { signInWithEmailAndPassword } = authModule;
+  const credential = await signInWithEmailAndPassword(auth, email, password);
   await ensureUserProfileSafely(credential.user);
   trackEvent("login", { method: "password" });
   return credential;
 }
 
 /** Sign in (or sign up) with a Google popup, then ensure the profile document. */
-export async function signInWithGoogle(loginHint?: string): Promise<UserCredential> {
+export async function signInWithGoogle(
+  loginHint?: string,
+): Promise<UserCredential> {
+  const { auth, authModule } = await loadFirebaseAuth();
+  const { GoogleAuthProvider, signInWithPopup } = authModule;
   const provider = new GoogleAuthProvider();
   const customParams: Record<string, string> = { prompt: "select_account" };
   if (loginHint && loginHint.trim()) {
@@ -336,7 +338,7 @@ export async function signInWithGoogle(loginHint?: string): Promise<UserCredenti
   }
   provider.setCustomParameters(customParams);
 
-  const credential = await signInWithPopup(auth(), provider);
+  const credential = await signInWithPopup(auth, provider);
   await ensureUserProfileSafely(credential.user);
   trackEvent("login", { method: "google" });
   return credential;
@@ -344,14 +346,18 @@ export async function signInWithGoogle(loginHint?: string): Promise<UserCredenti
 
 /** Sign the current user out. */
 export async function signOutUser(): Promise<void> {
-  await signOut(auth());
+  const { auth, authModule } = await loadFirebaseAuth();
+  await authModule.signOut(auth);
 }
 
 export const VERIFICATION_RESEND_COOLDOWN_MS = 60_000;
 
 const lastVerificationSentAt = new Map<string, number>();
 
-export function getVerificationResendCooldown(user: User, now: number = Date.now()): number {
+export function getVerificationResendCooldown(
+  user: User,
+  now: number = Date.now(),
+): number {
   const last = lastVerificationSentAt.get(user.uid);
   if (last === undefined) {
     return 0;
@@ -370,31 +376,81 @@ export class VerificationRateLimitError extends Error {
   }
 }
 
-export async function sendVerificationEmail(user: User, now: number = Date.now()): Promise<void> {
+export async function sendVerificationEmail(
+  user: User,
+  now: number = Date.now(),
+): Promise<void> {
   const remaining = getVerificationResendCooldown(user, now);
   if (remaining > 0) {
     throw new VerificationRateLimitError(remaining);
   }
 
-  await sendEmailVerification(user);
+  const { authModule } = await loadFirebaseAuth();
+  await authModule.sendEmailVerification(user);
   lastVerificationSentAt.set(user.uid, now);
 }
 
 export async function reloadUser(user: User): Promise<User> {
+  const { auth } = await loadFirebaseAuth();
   await user.reload();
-  return auth().currentUser ?? user;
+  return auth.currentUser ?? user;
 }
 
 export function resetVerificationCooldown(): void {
   lastVerificationSentAt.clear();
 }
 
-export function subscribeToAuthState(callback: (user: User | null) => void): () => void {
-  return onAuthStateChanged(auth(), callback);
+export function subscribeToAuthState(
+  callback: (user: User | null) => void,
+): () => void {
+  let cancelled = false;
+  let unsubscribeAuth: (() => void) | undefined;
+
+  void loadFirebaseAuth()
+    .then(({ auth, authModule }) => {
+      if (cancelled) return;
+      unsubscribeAuth = authModule.onAuthStateChanged(auth, (user) => {
+        if (!cancelled) {
+          callback(user);
+        }
+      });
+    })
+    .catch((error) => {
+      console.error("Failed to initialize Firebase Auth listener", error);
+      if (!cancelled) {
+        callback(null);
+      }
+    });
+
+  return () => {
+    cancelled = true;
+    unsubscribeAuth?.();
+  };
 }
 
-export function subscribeToIdTokenChanges(callback: (user: User | null) => void): () => void {
-  return onIdTokenChanged(auth(), callback);
+export function subscribeToIdTokenChanges(
+  callback: (user: User | null) => void,
+): () => void {
+  let cancelled = false;
+  let unsubscribeToken: (() => void) | undefined;
+
+  void loadFirebaseAuth()
+    .then(({ auth, authModule }) => {
+      if (cancelled) return;
+      unsubscribeToken = authModule.onIdTokenChanged(auth, (user) => {
+        if (!cancelled) {
+          callback(user);
+        }
+      });
+    })
+    .catch((error) => {
+      console.error("Failed to initialize Firebase token listener", error);
+    });
+
+  return () => {
+    cancelled = true;
+    unsubscribeToken?.();
+  };
 }
 
 export function getAuthErrorMessage(error: unknown): string {

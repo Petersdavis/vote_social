@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+<svg width="140.55mm" height="140.58mm" version="1.1" viewBox="0 0 140.55 140.58" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+ <defs>
+  <linearGradient id="linearGradient11" x1="519.37" x2="642.81" y1="-514.36" y2="-454.15" gradientTransform="matrix(1.0054 0 0 1.0054 -4.0697 2.2645)" gradientUnits="userSpaceOnUse">
+   <stop stop-color="#002f83" offset=".78934"/>
+   <stop stop-color="#001a4e" stop-opacity=".98039" offset="1"/>
+  </linearGradient>
+  <linearGradient id="linearGradient2" x1="517.63" x2="608.21" y1="-551.42" y2="-428.63" gradientUnits="userSpaceOnUse">
+   <stop stop-color="#2975ff" offset="0"/>
+   <stop stop-color="#004de5" stop-opacity=".99608" offset=".16753"/>
+   <stop stop-color="#0051f4" stop-opacity=".98824" offset=".28915"/>
+   <stop stop-color="#004de5" stop-opacity=".98431" offset=".43346"/>
+   <stop stop-color="#0039ae" stop-opacity=".95686" offset="1"/>
+  </linearGradient>
+ </defs>
+ <g transform="translate(23.548 -43.127)">
+  <g transform="translate(-532.23 599.3)">
+   <rect x="511.15" y="-553.67" width="138.09" height="138.09" rx="13.485" ry="13.485" fill="url(#linearGradient11)" stroke-width=".35679"/>
+   <rect x="508.68" y="-556.17" width="135.47" height="135.47" rx="13.229" ry="13.229" fill="url(#linearGradient2)" stroke-width=".35002"/>
+   <g transform="translate(2.8892 2.5591)" fill="#f7f3e9" font-family="sans-serif">
+    <text x="581.29401" y="-458.76694" font-size="83.581px" opacity=".95948" stroke-width="1.2537" style="font-variant-caps:normal;font-variant-east-asian:normal;font-variant-ligatures:normal;font-variant-numeric:normal" xml:space="preserve"><tspan x="581.29401" y="-458.76694" fill="#f7f3e9" font-family="Geist" font-size="83.581px" stroke-width="1.2537" style="font-variant-caps:normal;font-variant-east-asian:normal;font-variant-ligatures:normal;font-variant-numeric:normal;font-variation-settings:'wght' 600">S</tspan></text>
+    <text x="515.64441" y="-457.10617" font-size="88.26px" opacity=".95948" stroke-width="1.3239" style="font-variant-caps:normal;font-variant-east-asian:normal;font-variant-ligatures:normal;font-variant-numeric:normal" xml:space="preserve"><tspan x="515.64441" y="-457.10617" fill="#f7f3e9" font-family="Geist" font-size="88.26px" stroke-width="1.3239" style="font-variant-caps:normal;font-variant-east-asian:normal;font-variant-ligatures:normal;font-variant-numeric:normal;font-variation-settings:'wght' 600">V</tspan></text>
+   </g>
+  </g>
+ </g>
+</svg>

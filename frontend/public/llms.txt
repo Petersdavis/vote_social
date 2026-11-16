@@ -1,0 +1,23 @@
+# Vote Social
+
+> Vote Social (https://vote-social.ca) is an independent, non-partisan civic social platform for Canadian elections that connects verified local voters, candidates, and community voting blocks around Municipal, Provincial, and Federal elections.
+
+Vote Social operates under a core principle: **Democracy is Social. Knowledge is Power. Politics is Local.** By entering a 6-character Canadian postal code, voters immediately unlock their exact Municipal Ward, Provincial Riding, and Federal Electoral District—alongside factual candidate comparisons, verified neighborhood discussions, community voter guides, and personalized polling logistics.
+
+## Core Platform Pillars
+
+- **1. Election Summary**: Instant postal-code ballot preview, a non-partisan "Wikipedia for Elections", 5-minute voter preparedness, and precision voting alerts for registration deadlines, advance voting days, and assigned polling stations.
+- **2. Candidate Comparison**: Side-by-side issue comparisons on housing, transit, and property taxes; substantive policy blueprints instead of attack ads; transparent endorsements from local advocacy groups, community organizations, and unions; and direct on-the-record candidate Q&A.
+- **3. Voter Dashboard**: Verified, bot-free, and private neighborhood forums (zero bots, zero data sales, zero robocalls); community micro-polling; tailored issue feeds; and post-election promise tracking.
+
+## Who Vote Social Serves
+
+- **Voters & Neighbors**: Discover every candidate on your local ballot, compare policy stances, read vouches from verified neighbors, pledge support, request a lawn sign in 1 click, and find your exact polling station and Voter ID checklist.
+- **Candidates & Grassroots Campaigns**: Claim a verified campaign profile, answer standardized local policy surveys once, respond on the record to top-voted constituent questions, and manage geo-tagged lawn sign and volunteer requests.
+- **Voting Blocks & Community Organizations**: Publish candidate scorecards and endorsed slates, show live verified supporter counts in each ward, and send opt-in mobilization alerts for advance polls and council votes.
+- **Journalists & Civic Watchdogs**: Track riding-by-riding issue velocity, search timestamped archives of candidate stances and roll-call votes, and embed live riding summaries.
+
+## Documentation & Links
+
+- [Vote Social Homepage & Early Access Waitlist](https://vote-social.ca/): Join the Stage 1 waitlist (development launches at 2,500 signups) and preview the interactive platform screens.
+- [Full LLM Documentation (llms-full.txt)](https://vote-social.ca/llms-full.txt): Detailed overview of Vote Social's architecture, federalist issue/policy model, persona features, and privacy guarantees.
