@@ -150,7 +150,7 @@ export default async function BlogArticlePage({
 
           <div className="flex items-center gap-2.5">
             <Link
-              href="/blog"
+              href="/blog/"
               className="px-3.5 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-800 text-xs font-bold inline-flex items-center gap-1.5 transition"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
@@ -171,7 +171,7 @@ export default async function BlogArticlePage({
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-6">
             <Link
-              href="/blog"
+              href="/blog/"
               className="inline-flex items-center gap-1.5 text-xs font-mono uppercase tracking-wider text-blue-700 hover:text-blue-800 font-bold"
             >
               <BookOpen className="w-3.5 h-3.5" />

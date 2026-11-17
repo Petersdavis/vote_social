@@ -154,7 +154,7 @@ export default function DevelopmentBlogIndexPage() {
 
               <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-950 leading-tight">
                 <Link
-                  href={`/blog/${post.slug}`}
+                  href={`/blog/${post.slug}/`}
                   className="hover:text-blue-700 transition"
                 >
                   {post.title}
@@ -181,7 +181,7 @@ export default function DevelopmentBlogIndexPage() {
                 </div>
 
                 <Link
-                  href={`/blog/${post.slug}`}
+                  href={`/blog/${post.slug}/`}
                   className="px-4 py-2 rounded-xl bg-blue-700 hover:bg-blue-800 text-white text-xs font-bold inline-flex items-center gap-1.5 transition shadow-2xs"
                 >
                   <span>Read Full Article</span>

@@ -150,16 +150,29 @@ export default function RootLayout({
     >
       <head>
         <script
-          async
-          src="https://www.googletagmanager.com/gtm.js?id=GTM-KHGMZV4C"
-        />
-        <script
           dangerouslySetInnerHTML={{
             __html: `
   window.dataLayer = window.dataLayer || [];
   window.dataLayer.push({'gtm.start': new Date().getTime(), event: 'gtm.js'});
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
+  (function() {
+    var loaded = false;
+    function loadGtm() {
+      if (loaded) return;
+      loaded = true;
+      var s = document.createElement('script');
+      s.async = true;
+      s.src = 'https://www.googletagmanager.com/gtm.js?id=GTM-KHGMZV4C';
+      document.head.appendChild(s);
+    }
+    ['pointerdown', 'keydown', 'scroll', 'touchstart'].forEach(function(evt) {
+      window.addEventListener(evt, loadGtm, { once: true, passive: true });
+    });
+    window.addEventListener('load', function() {
+      setTimeout(loadGtm, 3500);
+    }, { once: true });
+  })();
 `,
           }}
         />

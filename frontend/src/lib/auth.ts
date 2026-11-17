@@ -330,7 +330,8 @@ export async function signInWithGoogle(
   loginHint?: string,
 ): Promise<UserCredential> {
   const { auth, authModule } = await loadFirebaseAuth();
-  const { GoogleAuthProvider, signInWithPopup } = authModule;
+  const { GoogleAuthProvider, browserPopupRedirectResolver, signInWithPopup } =
+    authModule;
   const provider = new GoogleAuthProvider();
   const customParams: Record<string, string> = { prompt: "select_account" };
   if (loginHint && loginHint.trim()) {
@@ -338,7 +339,11 @@ export async function signInWithGoogle(
   }
   provider.setCustomParameters(customParams);
 
-  const credential = await signInWithPopup(auth, provider);
+  const credential = await signInWithPopup(
+    auth,
+    provider,
+    browserPopupRedirectResolver,
+  );
   await ensureUserProfileSafely(credential.user);
   trackEvent("login", { method: "google" });
   return credential;

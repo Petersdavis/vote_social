@@ -40,7 +40,16 @@ export function loadFirebaseAuth(): Promise<{
   if (!authPromise) {
     authPromise = Promise.all([loadFirebaseApp(), import("firebase/auth")]).then(
       ([app, authModule]) => {
-        const auth = authModule.getAuth(app);
+        // Use `initializeAuth` with `prodErrorMap` and without `popupRedirectResolver`
+        // so Firebase does NOT inject the hidden `__/auth/iframe` (93 KiB `iframe.js`)
+        // on initial page load or bundle verbose debug error strings.
+        const auth = authModule.initializeAuth(app, {
+          persistence: [
+            authModule.indexedDBLocalPersistence,
+            authModule.browserLocalPersistence,
+          ],
+          errorMap: authModule.prodErrorMap,
+        });
         if (useFirebaseEmulators) {
           authModule.connectAuthEmulator(auth, "http://127.0.0.1:9099", {
             disableWarnings: true,

@@ -4,58 +4,13 @@ Allow: /
 User-agent: Facebot
 Allow: /
 
-User-agent: facebookcatalog
-Allow: /
-
 User-agent: meta-externalagent
 Allow: /
 
 User-agent: Meta-ExternalFetcher
 Allow: /
 
-User-agent: Twitterbot
-Allow: /
-
-User-agent: Bluesky
-Allow: /
-
-User-agent: cardyb
-Allow: /
-
-User-agent: LinkedInBot
-Allow: /
-
-User-agent: WhatsApp
-Allow: /
-
-User-agent: Slackbot
-Allow: /
-
-User-agent: Slack-ImgProxy
-Allow: /
-
-User-agent: Discordbot
-Allow: /
-
-User-agent: TelegramBot
-Allow: /
-
-User-agent: redditbot
-Allow: /
-
-User-agent: Applebot
-Allow: /
-
-User-agent: Pinterestbot
-Allow: /
-
 User-agent: *
 Allow: /
-Disallow: /screens/
-Disallow: /toronto_2026/
-Disallow: /ontario_2026/
-Disallow: /canada_2026/
-Disallow: /profile/
-Disallow: /verify-email/
 
 Sitemap: https://vote-social.ca/sitemap.xml

@@ -299,7 +299,7 @@ export default function WaitlistLandingPage() {
             <div className="rounded-2xl bg-white border border-slate-200/90 p-6 sm:p-8 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6">
               <div className="space-y-2 max-w-3xl">
                 <div className="flex items-center gap-2.5 text-xs font-mono uppercase tracking-widest text-blue-700 font-bold">
-                  <Link href="/blog" className="hover:underline">
+                  <Link href="/blog/" className="hover:underline">
                     Development Blog
                   </Link>
                   <span className="text-slate-600">•</span>
@@ -320,7 +320,7 @@ export default function WaitlistLandingPage() {
 
               <div className="shrink-0">
                 <Link
-                  href={`/blog/${latestPost.slug}`}
+                  href={`/blog/${latestPost.slug}/`}
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={`Read article: ${latestPost.title} (opens in a new tab)`}

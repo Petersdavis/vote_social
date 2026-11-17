@@ -52,16 +52,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   userRef.current = user;
 
   useEffect(() => {
-    const unsubscribe = subscribeToAuthState((nextUser) => {
-      setUser(nextUser);
-      setLoading(false);
-    });
-    return unsubscribe;
-  }, []);
-
-  useEffect(() => {
     const unsubscribe = subscribeToIdTokenChanges((nextUser) => {
       setUser(nextUser);
+      setLoading(false);
     });
     return unsubscribe;
   }, []);
