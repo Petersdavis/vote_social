@@ -21,6 +21,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: "website",
+    locale: "en_CA",
     siteName: SITE_NAME,
     url: canonicalUrl("/blog/"),
     title: `Civic & Development Blog — ${SITE_NAME}`,
@@ -28,9 +29,10 @@ export const metadata: Metadata = {
       "Essays on local democracy, campaign equity, and why elections need public-interest digital infrastructure.",
     images: [
       {
-        url: "/og-image.png",
+        url: canonicalUrl("/og-image.png"),
         width: 1200,
         height: 630,
+        type: "image/png",
         alt: `${SITE_NAME} — Civic & Development Blog`,
       },
     ],
@@ -40,7 +42,7 @@ export const metadata: Metadata = {
     title: `Civic & Development Blog — ${SITE_NAME}`,
     description:
       "Essays on local democracy, campaign equity, and why elections need public-interest digital infrastructure.",
-    images: ["/og-image.png"],
+    images: [canonicalUrl("/og-image.png")],
   },
   robots: {
     index: true,
