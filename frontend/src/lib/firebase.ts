@@ -1,6 +1,7 @@
 import type { FirebaseApp } from "firebase/app";
 import type { Auth } from "firebase/auth";
 import type { Firestore } from "firebase/firestore";
+import type { Functions } from "firebase/functions";
 
 import { firebaseConfig, useFirebaseEmulators } from "./env";
 
@@ -20,6 +21,12 @@ let firestorePromise:
   | Promise<{
       db: Firestore;
       firestoreModule: typeof import("firebase/firestore");
+    }>
+  | undefined;
+let functionsPromise:
+  | Promise<{
+      functions: Functions;
+      functionsModule: typeof import("firebase/functions");
     }>
   | undefined;
 
@@ -79,4 +86,26 @@ export function loadFirebaseFirestore(): Promise<{
     });
   }
   return firestorePromise;
+}
+
+export function loadFirebaseFunctions(): Promise<{
+  functions: Functions;
+  functionsModule: typeof import("firebase/functions");
+}> {
+  if (!functionsPromise) {
+    functionsPromise = Promise.all([
+      loadFirebaseApp(),
+      import("firebase/functions"),
+    ]).then(([app, functionsModule]) => {
+      const functions = functionsModule.getFunctions(
+        app,
+        "northamerica-northeast1",
+      );
+      if (useFirebaseEmulators) {
+        functionsModule.connectFunctionsEmulator(functions, "127.0.0.1", 5001);
+      }
+      return { functions, functionsModule };
+    });
+  }
+  return functionsPromise;
 }

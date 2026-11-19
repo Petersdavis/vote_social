@@ -4,31 +4,25 @@ import React, { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { ChevronLeft } from "lucide-react";
 
-const ActiveElectionSetsBoard = dynamic(
-  () => import("@/components/screens/ActiveElectionSetsBoard"),
-);
 const WaitlistMessageBoard = dynamic(
   () => import("@/components/screens/WaitlistMessageBoard"),
 );
 
 interface WaitlistCarouselProps {
-  /** Pill label for Slide 1, e.g. "1 • Join the Waitlist" or "1 • Invite Neighbors" */
+  /** Pill label for Slide 1, e.g. "Waitlist Signup" or "Invite Neighbors" */
   slide1Label: string;
-  /** Pill label for Slide 2, defaults to "2 • Leaderboard & Conversation" */
+  /** Pill label for Slide 2, e.g. "Join the Conversation" or "Give Feedback" */
   slide2Label?: string;
   /** Label on the Back button inside Slide 2 */
   backToSlide1Label: string;
-  /** Optional election set IDs to highlight in the Leaderboard */
-  highlightElectionSetIds?: string[];
   /** Slide 1 primary CTA content */
   children: React.ReactNode;
 }
 
 export default function WaitlistCarousel({
   slide1Label,
-  slide2Label = "2 • Leaderboard & Feedback",
+  slide2Label = "Join the Conversation",
   backToSlide1Label,
-  highlightElectionSetIds = [],
   children,
 }: WaitlistCarouselProps) {
   const [activeSlide, setActiveSlide] = useState<0 | 1>(0);
@@ -74,7 +68,7 @@ export default function WaitlistCarousel({
       {/* Carousel Top Controls / Pill Switcher */}
       <div
         role="group"
-        aria-label="Waitlist and Community Leaderboard View Switcher"
+        aria-label="Waitlist and Community View Switcher"
         className="flex items-center justify-center gap-2 mb-6"
       >
         <div className="inline-flex items-center rounded-full bg-slate-200/80 p-1 border border-slate-300/60">
@@ -128,7 +122,7 @@ export default function WaitlistCarousel({
             {children}
           </div>
 
-          {/* ==================== SLIDE 2: LEADERBOARD & CONVERSATION ==================== */}
+          {/* ==================== SLIDE 2: CONVERSATION / FEEDBACK ==================== */}
           <div
             ref={slide1Ref}
             aria-hidden={activeSlide !== 1}
@@ -147,18 +141,12 @@ export default function WaitlistCarousel({
                 </button>
 
                 <span className="text-xs font-mono uppercase tracking-wider text-slate-600 font-semibold">
-                  Slide 2 of 2 • Live Community Activity
+                  {slide2Label}
                 </span>
               </div>
 
               {(slide2Visited || activeSlide === 1) && (
-                <>
-                  <ActiveElectionSetsBoard
-                    highlightIds={highlightElectionSetIds}
-                    compact
-                  />
-                  <WaitlistMessageBoard />
-                </>
+                <WaitlistMessageBoard />
               )}
             </div>
           </div>

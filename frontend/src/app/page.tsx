@@ -4,12 +4,10 @@ import React, { useEffect, useState } from "react";
 import {
   ArrowBigUp,
   ArrowRight,
-  Building2,
   Calendar,
   CheckCircle2,
   Compass,
   ExternalLink,
-  FileText,
   Flag,
   Layers,
   MapPin,
@@ -22,8 +20,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import WaitlistCarousel from "@/components/screens/WaitlistCarousel";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { trackEvent } from "@/lib/analytics";
 import { subscribeToPublicUserCount } from "@/lib/leaderboard";
-import { submitEmailWaitlist } from "@/lib/waitlist";
+import {
+  WAITLIST_PROFILE_UPDATED_EVENT,
+  getSavedWaitlistProfile,
+  submitEmailWaitlist,
+  type LocalWaitlistProfile,
+} from "@/lib/waitlist";
 import { BLOG_POSTS } from "@/data/blogPosts";
 
 const CommunityFeedScreen = dynamic(
@@ -39,14 +43,49 @@ const ElectionCenterScreen = dynamic(
 export default function WaitlistLandingPage() {
   const router = useRouter();
   const { user, profile } = useAuth();
-  const [activeShowcaseTab, setActiveShowcaseTab] = useState<1 | 2 | 3>(1);
+  const [activeShowcaseTab, setActiveShowcaseTabState] = useState<1 | 2 | 3>(1);
+
+  const setActiveShowcaseTab = (tab: 1 | 2 | 3) => {
+    setActiveShowcaseTabState(tab);
+    const screenName =
+      tab === 1
+        ? "election_summary"
+        : tab === 2
+        ? "candidate_profiles"
+        : "voter_dashboard";
+    trackEvent("screen_preview", { screen: screenName, location: "landing" });
+  };
   const [userCount, setUserCount] = useState<number | null>(15);
+  const [localWaitlist, setLocalWaitlist] =
+    useState<LocalWaitlistProfile | null>(null);
+
   const [heroEmail, setHeroEmail] = useState("");
+  const [heroError, setHeroError] = useState<string | null>(null);
   const [heroSubmitted, setHeroSubmitted] = useState(false);
 
   const [footerEmail, setFooterEmail] = useState("");
+  const [footerError, setFooterError] = useState<string | null>(null);
   const [footerSubmitted, setFooterSubmitted] = useState(false);
   const latestPost = BLOG_POSTS[0];
+
+  useEffect(() => {
+    const syncFromStorage = () => {
+      const saved = getSavedWaitlistProfile();
+      if (saved) {
+        setLocalWaitlist(saved);
+      }
+    };
+    syncFromStorage();
+    window.addEventListener(WAITLIST_PROFILE_UPDATED_EVENT, syncFromStorage);
+    window.addEventListener("storage", syncFromStorage);
+    return () => {
+      window.removeEventListener(
+        WAITLIST_PROFILE_UPDATED_EVENT,
+        syncFromStorage,
+      );
+      window.removeEventListener("storage", syncFromStorage);
+    };
+  }, []);
 
   useEffect(() => {
     const unsubscribe = subscribeToPublicUserCount(
@@ -64,39 +103,50 @@ export default function WaitlistLandingPage() {
 
   const handleHeroSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const trimmed = heroEmail.trim();
-    if (trimmed) {
-      setHeroSubmitted(true);
-      try {
-        await submitEmailWaitlist(trimmed, "landing-hero");
-      } catch (err) {
-        console.error("Failed to record waitlist signup:", err);
-      }
-      if (user) {
-        router.push("/profile");
-      } else {
-        router.push(`/register?email=${encodeURIComponent(trimmed)}`);
-      }
+    setHeroError(null);
+    const trimmedEmail = heroEmail.trim();
+    if (!trimmedEmail || !trimmedEmail.includes("@")) {
+      setHeroError("Please enter a valid email address.");
+      return;
     }
+    setHeroSubmitted(true);
+    try {
+      await submitEmailWaitlist(trimmedEmail, "landing-hero");
+    } catch (err) {
+      console.error("Failed to record waitlist signup:", err);
+    }
+    router.push(`/profile?email=${encodeURIComponent(trimmedEmail)}`);
   };
 
   const handleFooterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const trimmed = footerEmail.trim();
-    if (trimmed) {
-      setFooterSubmitted(true);
-      try {
-        await submitEmailWaitlist(trimmed, "landing-footer");
-      } catch (err) {
-        console.error("Failed to record waitlist signup:", err);
-      }
-      if (user) {
-        router.push("/profile");
-      } else {
-        router.push(`/register?email=${encodeURIComponent(trimmed)}`);
-      }
+    setFooterError(null);
+    const trimmedEmail = footerEmail.trim();
+    if (!trimmedEmail || !trimmedEmail.includes("@")) {
+      setFooterError("Please enter a valid email address.");
+      return;
     }
+    setFooterSubmitted(true);
+    try {
+      await submitEmailWaitlist(trimmedEmail, "landing-footer");
+    } catch (err) {
+      console.error("Failed to record waitlist signup:", err);
+    }
+    router.push(`/profile?email=${encodeURIComponent(trimmedEmail)}`);
   };
+
+  const isWaitlistComplete = Boolean(
+    profile?.profileComplete ||
+      localWaitlist?.profileComplete ||
+      localWaitlist?.email,
+  );
+  const activeDisplayName =
+    localWaitlist?.uname ||
+    profile?.first_name ||
+    user?.displayName ||
+    localWaitlist?.email ||
+    user?.email ||
+    null;
 
   return (
     <div className="min-h-screen bg-[#FAF8F5] text-slate-900 font-sans selection:bg-blue-600 selection:text-white">
@@ -137,14 +187,16 @@ export default function WaitlistLandingPage() {
           </div>
 
           <div className="flex items-center gap-2.5">
-            {user ? (
+            {user || isWaitlistComplete ? (
               <Link
                 href="/profile"
                 className="px-4 py-2 rounded-xl bg-blue-700 hover:bg-blue-800 text-white text-xs font-bold transition shadow-2xs inline-flex items-center gap-1.5"
               >
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 <span>
-                  {profile?.profileComplete ? "Your Waitlist Profile" : "Complete Profile →"}
+                  {isWaitlistComplete
+                    ? "Your Waitlist Profile"
+                    : "Confirm Districts →"}
                 </span>
               </Link>
             ) : (
@@ -183,53 +235,50 @@ export default function WaitlistLandingPage() {
               <span>Civic Social Platform for Voters, Candidates &amp; Voting Blocks</span>
             </div>
 
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-950 leading-[1.08] mb-6">
-              Democracy is Social.{" "}
-              <span className="text-blue-700">Knowledge is Power.</span>{" "}
-              <span className="underline decoration-emerald-500/70 decoration-4 underline-offset-8">
-                Politics is Local.
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-slate-950 leading-[1.2] mb-6 space-y-1.5">
+              <span className="block">
+                Meet local people and verified candidates.
+              </span>
+              <span className="block text-blue-700">
+                A non-profit social media app for civic engagement.
+              </span>
+              <span className="block underline decoration-emerald-500/70 decoration-4 underline-offset-8">
+                Start building a stronger democracy today.
               </span>
             </h1>
 
             <p className="max-w-3xl mx-auto text-base sm:text-lg text-slate-600 leading-relaxed mb-8">
-              Connect with verified neighbors in your ward, compare candidates side-by-side on standardized local surveys, pledge your vote with trusted community slates, and manage every election from School Board to Parliament in one place.
+              Compare candidates side-by-side, pledge your vote with trusted community slates, and manage every election from School Board to Parliament in one place.
             </p>
           </div>
 
           {/* 2-Slide Waitlist & Community Carousel */}
           <WaitlistCarousel
-            slide1Label="1 • Join the Waitlist"
+            slide1Label="Waitlist Signup"
+            slide2Label="Join the Conversation"
             backToSlide1Label="Back to Waitlist Signup"
-            highlightElectionSetIds={profile?.election_set_ids ?? []}
           >
             {/* Primary CTA Form */}
             <div
               id="join-waitlist"
-              className="max-w-xl mx-auto bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/90 shadow-md"
+              className="max-w-2xl mx-auto bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/90 shadow-md"
             >
-              <div className="mb-3 flex items-center justify-between text-left">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-left">
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-700">
                   Join the Waitlist for Early Access
                 </span>
-                <span className="text-[11px] font-mono text-slate-600">
-                  1. Email → 2. Google Auth → 3. Profile
-                </span>
               </div>
 
-              {user ? (
+              {isWaitlistComplete ? (
                 <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-950 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left">
                   <div className="flex items-center gap-3">
                     <CheckCircle2 className="w-6 h-6 text-emerald-600 shrink-0" />
                     <div>
                       <p className="text-sm font-bold">
-                        {profile?.profileComplete
-                          ? `Welcome back, ${profile.first_name || user.displayName || user.email}!`
-                          : "Account authenticated — finish your profile"}
+                        {`Welcome back${activeDisplayName ? `, ${activeDisplayName}` : ""}!`}
                       </p>
                       <p className="text-xs text-emerald-800">
-                        {profile?.profileComplete
-                          ? `Registered in postal zone ${profile.postcode || "Canada"}`
-                          : "Add your name, postal code, and optional civic role in Step 3."}
+                        You’re on the Vote Social Early Access List
                       </p>
                     </div>
                   </div>
@@ -237,9 +286,7 @@ export default function WaitlistLandingPage() {
                     href="/profile"
                     className="px-4 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold inline-flex items-center justify-center gap-1.5 shrink-0 transition"
                   >
-                    <span>
-                      {profile?.profileComplete ? "View Profile" : "Complete Profile"}
-                    </span>
+                    <span>View Waitlist Status</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </Link>
                 </div>
@@ -247,36 +294,52 @@ export default function WaitlistLandingPage() {
                 <form
                   aria-label="Primary Early Access Waitlist Signup"
                   onSubmit={handleHeroSubmit}
-                  className="flex flex-col sm:flex-row gap-2.5"
+                  className="space-y-2.5"
                 >
-                  <label htmlFor="hero-waitlist-email" className="sr-only">
-                    Email address for early access waitlist
-                  </label>
-                  <input
-                    id="hero-waitlist-email"
-                    type="email"
-                    required
-                    value={heroEmail}
-                    onChange={(e) => setHeroEmail(e.target.value)}
-                    placeholder="Enter your email address..."
-                    className="flex-1 px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-900 placeholder:text-slate-600 focus:outline-none focus:border-blue-600 focus:bg-white"
-                  />
-                  <button
-                    type="submit"
-                    disabled={heroSubmitted}
-                    className="px-6 py-3 rounded-xl bg-blue-700 hover:bg-blue-800 text-white font-bold text-sm inline-flex items-center justify-center gap-2 shadow-xs transition shrink-0 cursor-pointer"
-                  >
-                    <span>
-                      {heroSubmitted ? "Continuing…" : "Join the Waitlist"}
-                    </span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
+                  <div className="flex flex-col sm:flex-row gap-2.5">
+                    <label htmlFor="hero-waitlist-email" className="sr-only">
+                      Email address for early access waitlist
+                    </label>
+                    <input
+                      id="hero-waitlist-email"
+                      type="email"
+                      required
+                      autoComplete="email"
+                      value={heroEmail}
+                      onChange={(e) => {
+                        setHeroEmail(e.target.value);
+                        if (heroError) setHeroError(null);
+                      }}
+                      placeholder="Enter your email address..."
+                      className="flex-1 px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-900 placeholder:text-slate-600 focus:outline-none focus:border-blue-600 focus:bg-white"
+                    />
+
+                    <button
+                      type="submit"
+                      disabled={heroSubmitted}
+                      className="px-5 py-3 rounded-xl bg-blue-700 hover:bg-blue-800 text-white font-bold text-sm inline-flex items-center justify-center gap-2 shadow-xs transition shrink-0 cursor-pointer"
+                    >
+                      <span>
+                        {heroSubmitted ? "Joining…" : "Join the Waitlist"}
+                      </span>
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {heroError && (
+                    <p
+                      role="alert"
+                      className="text-xs text-rose-600 font-semibold text-left"
+                    >
+                      {heroError}
+                    </p>
+                  )}
                 </form>
               )}
 
               <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-600">
                 <span>
-                  🔒 Zero spam • Complete your civic profile in under 60 seconds
+                  🔒 Zero spam • Early access &amp; launch updates only
                 </span>
                 <span className="font-mono font-semibold text-emerald-800">
                   {`✨✨ ${((userCount ?? 0) + 15).toLocaleString()} / 2,500 ✨✨ signups to dev launch! 🎉🎉🎉`}
@@ -336,9 +399,9 @@ export default function WaitlistLandingPage() {
       )}
 
       {/* =====================================================================
-          THREE-COLUMN SCREEN PREVIEW GRAPHICS & FEATURE BREAKDOWN
-          Matches the Updated Waitlist Layout Structure:
-          Screen 1 Preview Graphic | Screen 2 Preview Graphic | Screen 3 Preview Graphic
+          OUR BELIEFS • 3 CORE PILLARS
+          Foundational values and beliefs ("The Big WHY"), decoupled from the
+          interactive screen showcase below.
          ===================================================================== */}
       <section
         id="core-pillars"
@@ -348,7 +411,7 @@ export default function WaitlistLandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto mb-12">
             <span className="text-xs font-mono uppercase tracking-widest text-blue-700 font-bold">
-              Platform Architecture • 3 Core Pillars
+              OUR BELIEFS • 3 CORE PILLARS
             </span>
             <h2
               id="core-pillars-heading"
@@ -356,403 +419,136 @@ export default function WaitlistLandingPage() {
             >
               Built for Transparent Local Democracy
             </h2>
-            <p className="text-sm text-slate-600 mt-1.5">
-              Click any card below to preview that screen in the interactive showcase.
-            </p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-7 items-stretch">
-            {/* ==================== COLUMN 1: ELECTION SUMMARY ==================== */}
-            <article
-              onClick={() => setActiveShowcaseTab(1)}
-              className={`group rounded-2xl bg-white border transition flex flex-col justify-between overflow-hidden cursor-pointer ${
-                activeShowcaseTab === 1
-                  ? "border-blue-600 ring-2 ring-blue-600/20 shadow-md"
-                  : "border-slate-200/90 shadow-xs hover:border-slate-300"
-              }`}
-            >
-              <div>
-                {/* Screen 1 Miniature Graphic Preview (Decorative Thumbnail) */}
-                <div
-                  aria-hidden="true"
-                  className="bg-slate-900 p-4 border-b border-slate-200 h-[196px] flex flex-col"
-                >
-                  <div className="flex items-center justify-between text-[11px] text-slate-300 mb-3 shrink-0">
-                    <span className="font-mono font-bold text-emerald-400">
-                      01 • ELECTION SUMMARY
-                    </span>
-                    <span className="font-mono bg-slate-800 px-2 py-0.5 rounded text-white">
-                      /toronto_2026/summary
-                    </span>
-                  </div>
+            {/* ==================== CARD 01: ACCESSIBILITY ==================== */}
+            <article className="rounded-2xl bg-white border border-slate-200/90 p-6 sm:p-8 shadow-xs flex flex-col">
+              <span className="text-xs font-mono font-bold uppercase tracking-wider text-blue-700">
+                01 • ACCESSIBILITY
+              </span>
+              <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mt-2 mb-3">
+                Breaking down Barriers
+              </h3>
+              <p className="text-sm text-slate-600 leading-relaxed mb-6">
+                It's well known that friction reduces engagement. Participation shouldn&apos;t mean digging through fragmented websites just to cast an informed vote. We use technology to reduce the gap between wanting to participate and taking a meaningful action.
+              </p>
 
-                  {/* Mini UI Mock Card inside Preview Graphic */}
-                  <div className="bg-white rounded-xl p-3 text-slate-900 flex-1 flex flex-col justify-between shadow-sm">
-                    {/* Mini Row of Candidate Cards */}
-                    <div className="grid grid-cols-3 gap-1 text-[9px]">
-                      <div className="p-1.5 rounded bg-blue-50/70 border border-blue-200">
-                        <div className="font-bold text-slate-900 flex items-center gap-0.5">
-                          <span>Maya Lin</span>
-                          <ShieldCheck className="w-2.5 h-2.5 text-emerald-600 shrink-0" />
-                        </div>
-                        <div className="text-slate-600 truncate">MNM (740) • 485 Unaff.</div>
-                      </div>
-                      <div className="p-1.5 rounded bg-slate-50 border border-slate-200">
-                        <div className="font-bold text-slate-900 flex items-center gap-0.5">
-                          <span>D. Kowalski</span>
-                          <ShieldCheck className="w-2.5 h-2.5 text-emerald-600 shrink-0" />
-                        </div>
-                        <div className="text-slate-600 truncate">DSBA (620) • 590 Unaff.</div>
-                      </div>
-                      <div className="p-1.5 rounded bg-slate-50 border border-slate-200">
-                        <div className="font-bold text-slate-900 flex items-center gap-0.5">
-                          <span>Priya Nair</span>
-                          <ShieldCheck className="w-2.5 h-2.5 text-emerald-600 shrink-0" />
-                        </div>
-                        <div className="text-slate-600 truncate">EETU (440) • 315 Unaff.</div>
-                      </div>
-                    </div>
-
-                    {/* Mini 2-Col Split: Issue Feed + Top Issues / Org Guides */}
-                    <div className="grid grid-cols-12 gap-1.5 text-[9px] pt-1.5 border-t border-slate-100">
-                      <div className="col-span-7 p-1.5 rounded bg-slate-50 border border-slate-200 space-y-1">
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold text-blue-800">Issue: Transit</span>
-                          <span className="px-1 rounded bg-blue-100 text-blue-800 font-semibold">
-                            Endorses: Maya Lin
-                          </span>
-                        </div>
-                        <p className="font-semibold text-slate-800 line-clamp-1">
-                          Overnight haul-truck mitigation & Policies
-                        </p>
-                      </div>
-                      <div className="col-span-5 p-1.5 rounded bg-slate-50 border border-slate-200 space-y-1">
-                        <div className="font-bold text-slate-900">Top Issues • ▲ 418</div>
-                        <div className="text-emerald-800 font-semibold truncate">
-                          + Org Voter Guides
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Screen 1 Description & Bullet Points */}
-                <div className="p-6">
-                  <h3 className="text-xl font-bold text-slate-900 mb-4">
-                    Election Summary
-                  </h3>
-
-                  <ul className="space-y-3 text-sm text-slate-600">
-                    <li className="flex items-start gap-2.5">
-                      <MapPin className="w-4 h-4 text-blue-700 shrink-0 mt-1" />
-                      <span>
-                        <strong className="text-slate-900">
-                          Instant Ballot Preview:
-                        </strong>{" "}
-                        Enter your postal code to see a clean, factual profile of every candidate running in your exact ward or riding.
-                      </span>
-                    </li>
-                    <li className="flex items-start gap-2.5">
-                      <ShieldCheck className="w-4 h-4 text-blue-700 shrink-0 mt-1" />
-                      <span>
-                        <strong className="text-slate-900">
-                          A True “Wikipedia for Elections”:
-                        </strong>{" "}
-                        Access a non-partisan, non-profit public square owned by the public interest—not political parties or corporate shareholders.
-                      </span>
-                    </li>
-                    <li className="flex items-start gap-2.5">
-                      <Compass className="w-4 h-4 text-blue-700 shrink-0 mt-1" />
-                      <span>
-                        <strong className="text-slate-900">
-                          5-Minute Voter Preparedness:
-                        </strong>{" "}
-                        Skip hours of dead-end searches and get everything you need to cast an informed vote in one place.
-                      </span>
-                    </li>
-                    <li className="flex items-start gap-2.5">
-                      <Calendar className="w-4 h-4 text-emerald-600 shrink-0 mt-1" />
-                      <span>
-                        <strong className="text-slate-900">
-                          Precision Voting Alerts:
-                        </strong>{" "}
-                        Get customized reminders for registration deadlines, advance voting days, and your exact polling station.
-                      </span>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                aria-pressed={activeShowcaseTab === 1}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setActiveShowcaseTab(1);
-                }}
-                className="w-full px-6 py-4 bg-slate-50 hover:bg-blue-50/50 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-left cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-blue-700"
-              >
-                <span className="text-blue-700">
-                  {activeShowcaseTab === 1
-                    ? "● Active in Preview Below (Election Summary)"
-                    : "Preview Election Summary Below"}
-                </span>
-              </button>
+              <ul className="mt-auto pt-5 border-t border-slate-100 space-y-3.5 text-sm text-slate-600">
+                <li className="flex items-start gap-2.5">
+                  <MapPin className="w-4 h-4 text-blue-700 shrink-0 mt-1" />
+                  <span>
+                    <strong className="text-slate-900">
+                      Instant Ballot Lookup:
+                    </strong>{" "}
+                    Enter your postal code to see a clean, factual profile of every candidate running in your exact ward or riding.
+                  </span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <Compass className="w-4 h-4 text-blue-700 shrink-0 mt-1" />
+                  <span>
+                    <strong className="text-slate-900">
+                      5-Minute Voter Preparedness:
+                    </strong>{" "}
+                    Skip hours of dead-end searches and get everything you need to make an informed choice in one place.
+                  </span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <Calendar className="w-4 h-4 text-emerald-600 shrink-0 mt-1" />
+                  <span>
+                    <strong className="text-slate-900">
+                      Precision Voting Alerts:
+                    </strong>{" "}
+                    Get customized reminders for registration deadlines, advance voting days, and your exact polling station.
+                  </span>
+                </li>
+              </ul>
             </article>
 
-            {/* ==================== COLUMN 2: CANDIDATE PROFILES ==================== */}
-            <article
-              onClick={() => setActiveShowcaseTab(2)}
-              className={`group rounded-2xl bg-white border transition flex flex-col justify-between overflow-hidden cursor-pointer ${
-                activeShowcaseTab === 2
-                  ? "border-blue-600 ring-2 ring-blue-600/20 shadow-md"
-                  : "border-slate-200/90 shadow-xs hover:border-slate-300"
-              }`}
-            >
-              <div>
-                {/* Screen 2 Miniature Graphic Preview (Decorative Thumbnail) */}
-                <div
-                  aria-hidden="true"
-                  className="bg-slate-900 p-4 border-b border-slate-200 h-[196px] flex flex-col"
-                >
-                  <div className="flex items-center justify-between text-[11px] text-slate-300 mb-3 shrink-0">
-                    <span className="font-mono font-bold text-blue-400">
-                      02 • CANDIDATE PROFILES
-                    </span>
-                    <span className="font-mono bg-slate-800 px-2 py-0.5 rounded text-white">
-                      /toronto_2026/candidates
-                    </span>
-                  </div>
+            {/* ==================== CARD 02: PUBLIC INFRASTRUCTURE ==================== */}
+            <article className="rounded-2xl bg-white border border-slate-200/90 p-6 sm:p-8 shadow-xs flex flex-col">
+              <span className="text-xs font-mono font-bold uppercase tracking-wider text-blue-700">
+                02 • PUBLIC INFRASTRUCTURE
+              </span>
+              <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mt-2 mb-3">
+                Discourse transforms
+              </h3>
+              <p className="text-sm text-slate-600 leading-relaxed mb-6">
+                Social media platforms profit from echo chambers. Neighbours actually want constructive conversation. We provide a non-partisan public square built for substance, good faith, and genuine connection.
+              </p>
 
-                  {/* Mini UI Mock Card inside Preview Graphic (Flush cards + summary) */}
-                  <div className="bg-white rounded-xl overflow-hidden text-slate-900 shadow-sm border border-slate-200 flex-1 flex flex-col justify-between">
-                    {/* Flush Candidate Cards Row */}
-                    <div className="grid grid-cols-3 divide-x divide-slate-200 bg-slate-50 text-[9px] border-b border-slate-200">
-                      <div className="p-2 bg-white">
-                        <div className="font-bold text-slate-900 flex items-center justify-between">
-                          <span>Maya Lin</span>
-                          <span className="px-1 rounded bg-blue-700 text-white text-[8px]">
-                            Your Vote
-                          </span>
-                        </div>
-                        <div className="text-slate-600 mt-0.5 truncate">
-                          Housing • MNM (740)
-                        </div>
-                      </div>
-                      <div className="p-2">
-                        <div className="font-bold text-slate-700">D. Kowalski</div>
-                        <div className="text-slate-600 mt-0.5 truncate">
-                          Budget • DSBA (620)
-                        </div>
-                      </div>
-                      <div className="p-2">
-                        <div className="font-bold text-slate-700">Priya Nair</div>
-                        <div className="text-slate-600 mt-0.5 truncate">
-                          Climate • EETU (440)
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Flush Candidate Summary Preview */}
-                    <div className="p-2.5 text-[9px] flex-1 flex flex-col justify-between">
-                      <div className="flex items-center gap-1 flex-wrap">
-                        <span className="px-1.5 py-0.5 rounded bg-blue-700 text-white font-bold">
-                          Pledge your support
-                        </span>
-                        <span className="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-900 border border-emerald-200 font-semibold">
-                          Lawn Sign Request
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between pt-1.5 border-t border-slate-100 text-slate-600 font-mono">
-                        <span>📄 maya_lin_cv.pdf • resume.pdf</span>
-                        <span className="text-blue-700 font-sans font-bold">
-                          Testimonials & Q&A
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Screen 2 Description & Bullet Points */}
-                <div className="p-6">
-                  <h3 className="text-xl font-bold text-slate-900 mb-4">
-                    Candidate Comparison
-                  </h3>
-
-                  <ul className="space-y-3 text-sm text-slate-600">
-                    <li className="flex items-start gap-2.5">
-                      <Layers className="w-4 h-4 text-blue-700 shrink-0 mt-1" />
-                      <span>
-                        <strong className="text-slate-900">
-                          Side-by-Side Issue Comparisons:
-                        </strong>{" "}
-                        Skip the spin and compare candidate stances head-to-head on local issues like housing, transit, and property taxes.
-                      </span>
-                    </li>
-                    <li className="flex items-start gap-2.5">
-                      <FileText className="w-4 h-4 text-blue-700 shrink-0 mt-1" />
-                      <span>
-                        <strong className="text-slate-900">
-                          Substantive Policy Blueprints:
-                        </strong>{" "}
-                        Read clear, concise breakdowns of proposed policy actions instead of empty slogans and attack ads.
-                      </span>
-                    </li>
-                    <li className="flex items-start gap-2.5">
-                      <Building2 className="w-4 h-4 text-blue-700 shrink-0 mt-1" />
-                      <span>
-                        <strong className="text-slate-900">
-                          Transparent Endorsements:
-                        </strong>{" "}
-                        See exactly which local advocacy groups, community organizations, and unions are backing each candidate.
-                      </span>
-                    </li>
-                    <li className="flex items-start gap-2.5">
-                      <MessageSquare className="w-4 h-4 text-emerald-600 shrink-0 mt-1" />
-                      <span>
-                        <strong className="text-slate-900">
-                          Direct Candidate Q&amp;A:
-                        </strong>{" "}
-                        Ask questions directly to local candidates and review their public, on-the-record answers before you vote.
-                      </span>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                aria-pressed={activeShowcaseTab === 2}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setActiveShowcaseTab(2);
-                }}
-                className="w-full px-6 py-4 bg-slate-50 hover:bg-blue-50/50 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-left cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-blue-700"
-              >
-                <span className="text-blue-700">
-                  {activeShowcaseTab === 2
-                    ? "● Active in Preview Below (Candidate Comparison)"
-                    : "Preview Candidate Comparison Below"}
-                </span>
-              </button>
+              <ul className="mt-auto pt-5 border-t border-slate-100 space-y-3.5 text-sm text-slate-600">
+                <li className="flex items-start gap-2.5">
+                  <ShieldCheck className="w-4 h-4 text-blue-700 shrink-0 mt-1" />
+                  <span>
+                    <strong className="text-slate-900">
+                      A True “Wikipedia for Elections”:
+                    </strong>{" "}
+                    Access a non-partisan, non-profit civic commons owned by the public interest—not political parties or corporate shareholders.
+                  </span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-1" />
+                  <span>
+                    <strong className="text-slate-900">
+                      Verified, Bot-Free &amp; Private:
+                    </strong>{" "}
+                    Engage in a strictly moderated forum of verified local neighbours with zero bots, zero data sales, and no robocalls.
+                  </span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <Layers className="w-4 h-4 text-blue-700 shrink-0 mt-1" />
+                  <span>
+                    <strong className="text-slate-900">
+                      Side-by-Side Policy Blueprints:
+                    </strong>{" "}
+                    Skip the spin and compare substantive candidate stances head-to-head on local issues like housing, transit, and property taxes.
+                  </span>
+                </li>
+              </ul>
             </article>
 
-            {/* ==================== COLUMN 3: VOTER DASHBOARD ==================== */}
-            <article
-              onClick={() => setActiveShowcaseTab(3)}
-              className={`group rounded-2xl bg-white border transition flex flex-col justify-between overflow-hidden cursor-pointer ${
-                activeShowcaseTab === 3
-                  ? "border-blue-600 ring-2 ring-blue-600/20 shadow-md"
-                  : "border-slate-200/90 shadow-xs hover:border-slate-300"
-              }`}
-            >
-              <div>
-                {/* Screen 3 Miniature Graphic Preview (Decorative Thumbnail) */}
-                <div
-                  aria-hidden="true"
-                  className="bg-slate-900 p-4 border-b border-slate-200 h-[196px] flex flex-col"
-                >
-                  <div className="flex items-center justify-between text-[11px] text-slate-300 mb-3 shrink-0">
-                    <span className="font-mono font-bold text-amber-400">
-                      03 • VOTER DASHBOARD
-                    </span>
-                    <span className="font-mono bg-slate-800 px-2 py-0.5 rounded text-white">
-                      Weekly | Monthly
-                    </span>
-                  </div>
+            {/* ==================== CARD 03: CIVIC STEWARDSHIP ==================== */}
+            <article className="rounded-2xl bg-white border border-slate-200/90 p-6 sm:p-8 shadow-xs flex flex-col">
+              <span className="text-xs font-mono font-bold uppercase tracking-wider text-blue-700">
+                03 • CIVIC STEWARDSHIP
+              </span>
+              <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mt-2 mb-3">
+                It&apos;s Our Democracy
+              </h3>
+              <p className="text-sm text-slate-600 leading-relaxed mb-6">
+                Cynicism thrives when citizens are treated as commodities.  Healthy democratic institutions depend on active local stewardship: asking tough questions, making our voices heard, and holding leaders accountable year-round.
+              </p>
 
-                  {/* Mini UI Mock Card inside Preview Graphic */}
-                  <div className="bg-white rounded-xl p-3 text-slate-900 flex-1 flex flex-col justify-between shadow-sm">
-                    {/* Mini Active Election Card with Endorses Badge (Top Row) */}
-                    <div className="px-2 py-1.5 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-between text-[9px]">
-                      <div className="flex items-center gap-1.5 truncate">
-                        <span className="font-bold text-slate-900 truncate">
-                          Toronto Election (2026) →
-                        </span>
-                        <span className="px-1.5 py-0.2 rounded-full bg-blue-50 text-blue-800 border border-blue-200 font-semibold shrink-0">
-                          ● Endorses: Maya Lin
-                        </span>
-                      </div>
-                      <span className="text-blue-700 font-bold shrink-0 ml-1">/summary</span>
-                    </div>
-
-                    {/* Mini Calendar Strip */}
-                    <div className="flex items-center justify-between text-[9px] font-bold bg-slate-50 border border-slate-200 rounded-lg px-2 py-1">
-                      <span className="text-blue-800">Election Calendar (Weekly)</span>
-                      <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-950 font-mono">
-                        Nov 12–15 Early Polls • Nov 21 Vote
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between text-[9px] pt-1 border-t border-slate-100 text-slate-600 font-mono">
-                      <span>Following: Issues • Candidates • Orgs</span>
-                      <span className="text-emerald-700 font-bold">⚙ Notifications</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Screen 3 Description & Bullet Points */}
-                <div className="p-6">
-                  <h3 className="text-xl font-bold text-slate-900 mb-4">
-                    Voter Dashboard
-                  </h3>
-
-                  <ul className="space-y-3 text-sm text-slate-600">
-                    <li className="flex items-start gap-2.5">
-                      <ShieldCheck className="w-4 h-4 text-blue-700 shrink-0 mt-1" />
-                      <span>
-                        <strong className="text-slate-900">
-                          Verified, Bot-Free &amp; Private:
-                        </strong>{" "}
-                        Engage in a strictly moderated forum of verified local neighbors with zero bots, zero data sales, and no robocalls.
-                      </span>
-                    </li>
-                    <li className="flex items-start gap-2.5">
-                      <ArrowBigUp className="w-4 h-4 text-blue-700 shrink-0 mt-1" />
-                      <span>
-                        <strong className="text-slate-900">
-                          Community Micro-Polling:
-                        </strong>{" "}
-                        Weigh in on neighborhood polls to show candidates where locals actually stand long before Election Day.
-                      </span>
-                    </li>
-                    <li className="flex items-start gap-2.5">
-                      <Layers className="w-4 h-4 text-emerald-600 shrink-0 mt-1" />
-                      <span>
-                        <strong className="text-slate-900">
-                          Tailored Issue Feed:
-                        </strong>{" "}
-                        Filter your dashboard strictly by the local topics you care about most so you can ignore the noise.
-                      </span>
-                    </li>
-                    <li className="flex items-start gap-2.5">
-                      <Flag className="w-4 h-4 text-blue-700 shrink-0 mt-1" />
-                      <span>
-                        <strong className="text-slate-900">
-                          Post-Election Promise Tracker:
-                        </strong>{" "}
-                        Track elected officials after they take office to see if they actually fulfill their campaign pledges.
-                      </span>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                aria-pressed={activeShowcaseTab === 3}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setActiveShowcaseTab(3);
-                }}
-                className="w-full px-6 py-4 bg-slate-50 hover:bg-blue-50/50 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-left cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-blue-700"
-              >
-                <span className="text-blue-700">
-                  {activeShowcaseTab === 3
-                    ? "● Active in Preview Below (Voter Dashboard)"
-                    : "Preview Voter Dashboard Below"}
-                </span>
-              </button>
+              <ul className="mt-auto pt-5 border-t border-slate-100 space-y-3.5 text-sm text-slate-600">
+                <li className="flex items-start gap-2.5">
+                  <MessageSquare className="w-4 h-4 text-emerald-600 shrink-0 mt-1" />
+                  <span>
+                    <strong className="text-slate-900">
+                      Direct Candidate Q&amp;A:
+                    </strong>{" "}
+                    Ask questions directly to local candidates and review their public, on-the-record answers before you vote.
+                  </span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <ArrowBigUp className="w-4 h-4 text-blue-700 shrink-0 mt-1" />
+                  <span>
+                    <strong className="text-slate-900">
+                      Community Micro-Polling:
+                    </strong>{" "}
+                    Weigh in on neighbourhood polls to show candidates where locals actually stand long before Election Day.
+                  </span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <Flag className="w-4 h-4 text-blue-700 shrink-0 mt-1" />
+                  <span>
+                    <strong className="text-slate-900">
+                      Post-Election Promise Tracker:
+                    </strong>{" "}
+                    Keep officials accountable after the ballots are counted by tracking whether they actually fulfill their campaign pledges.
+                  </span>
+                </li>
+              </ul>
             </article>
           </div>
         </div>
@@ -898,44 +694,50 @@ export default function WaitlistLandingPage() {
             Whether you’re a voter looking for transparent answers, a candidate running a grassroots campaign, or a local organization mobilizing a voting block—reserve your early access invite today.
           </p>
 
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-xl mx-auto text-left">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-2xl mx-auto text-left">
             {footerSubmitted ? (
               <div className="p-4 rounded-xl bg-emerald-950/90 border border-emerald-700 text-emerald-200 text-sm flex items-center justify-between">
                 <span>
-                  ✓ Early access registered for <strong>{footerEmail}</strong>.
+                  ✓ Added <strong>{footerEmail}</strong> to the early access waitlist…
                 </span>
-                <button
-                  type="button"
-                  onClick={() => setFooterSubmitted(false)}
-                  className="text-xs underline ml-3"
-                >
-                  Reset
-                </button>
               </div>
             ) : (
               <form
                 aria-label="Secondary Early Access Waitlist Signup"
                 onSubmit={handleFooterSubmit}
-                className="flex flex-col sm:flex-row gap-3"
+                className="space-y-2.5"
               >
-                <label htmlFor="footer-waitlist-email" className="sr-only">
-                  Email address for early access waitlist
-                </label>
-                <input
-                  id="footer-waitlist-email"
-                  type="email"
-                  required
-                  value={footerEmail}
-                  onChange={(e) => setFooterEmail(e.target.value)}
-                  placeholder="Enter your email address..."
-                  className="flex-1 px-4 py-3 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:border-blue-400"
-                />
-                <button
-                  type="submit"
-                  className="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm transition cursor-pointer shrink-0"
-                >
-                  Get Early Access
-                </button>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <label htmlFor="footer-waitlist-email" className="sr-only">
+                    Email address for early access waitlist
+                  </label>
+                  <input
+                    id="footer-waitlist-email"
+                    type="email"
+                    required
+                    autoComplete="email"
+                    value={footerEmail}
+                    onChange={(e) => {
+                      setFooterEmail(e.target.value);
+                      if (footerError) setFooterError(null);
+                    }}
+                    placeholder="Enter your email address..."
+                    className="flex-1 px-4 py-3 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:border-blue-400"
+                  />
+
+                  <button
+                    type="submit"
+                    className="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm transition cursor-pointer shrink-0"
+                  >
+                    Get Early Access
+                  </button>
+                </div>
+
+                {footerError && (
+                  <p role="alert" className="text-xs text-rose-400 font-semibold">
+                    {footerError}
+                  </p>
+                )}
               </form>
             )}
           </div>

@@ -1,19 +1,26 @@
 /**
- * Waitlist Message Board & Feedback persistence (`user -> post` relationship).
+ * Waitlist Message Board & Feedback persistence.
+ *
+ * Because waitlist users do not have a Firebase Auth `users/{uid}` session,
+ * public chat messages and private product feedback are written directly to
+ * dedicated waitlist collections (`waitlist_posts` and `waitlist_feedback`)
+ * using the user's `uname` and `email` stored in `localStorage`.
  *
  * Uses lazy-loaded Firestore via `loadFirebaseFirestore()` so `firebase/firestore`
  * is split out of the initial page bundle.
  */
 
-import type { User } from "firebase/auth";
 import type { DocumentData, QueryDocumentSnapshot } from "firebase/firestore";
 
-import { USERS_COLLECTION, type UserProfile } from "./auth";
 import { trackEvent } from "./analytics";
 import { loadFirebaseFirestore } from "./firebase";
+import { normalizeEmail, waitlistDocId } from "./waitlist";
 
-export const PUBLIC_POSTS_SUBCOLLECTION = "public_posts";
-export const FEEDBACK_POSTS_SUBCOLLECTION = "feedback_posts";
+/** Custom top-level collection for public waitlist chat messages (create-only + public read). */
+export const WAITLIST_PUBLIC_POSTS_COLLECTION = "waitlist_posts";
+
+/** Custom top-level collection for private waitlist feedback (strictly write-only). */
+export const WAITLIST_FEEDBACK_COLLECTION = "waitlist_feedback";
 
 export const WAITLIST_MESSAGES_PAGE_SIZE = 25;
 export const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
@@ -35,68 +42,65 @@ export interface FetchPublicPostsResult {
 }
 
 /**
- * Resolve the denormalized `author` string (`first_name last_name`) from the
- * user's profile or Firebase Auth display name.
- */
-export function formatPostAuthorName(
-  user: User,
-  profile?: UserProfile | null,
-): string {
-  const fromProfile = [profile?.first_name, profile?.last_name]
-    .map((part) => (part ?? "").trim())
-    .filter(Boolean)
-    .join(" ");
-  if (fromProfile) {
-    return fromProfile;
-  }
-  if (user.displayName && user.displayName.trim()) {
-    return user.displayName.trim();
-  }
-  if (user.email) {
-    return user.email.split("@")[0] || "Waitlist Member";
-  }
-  return "Waitlist Member";
-}
-
-/**
- * Create a new `public_posts` or `feedback_posts` document under `users/{uid}`.
+ * Create a new `waitlist_posts` (public chat) or `waitlist_feedback` (private feedback)
+ * document using the user's chosen `uname` and `email` from localStorage.
  */
 export async function createWaitlistPost(params: {
-  user: User;
-  profile?: UserProfile | null;
+  uname: string;
+  email: string;
   content: string;
   mode: PostMode;
 }): Promise<{ id: string; author: string }> {
-  const trimmed = params.content.trim();
-  if (!trimmed) {
+  const trimmedContent = params.content.trim();
+  const trimmedUname = params.uname.trim();
+  const normalizedEmail = normalizeEmail(params.email);
+
+  if (!trimmedUname) {
+    throw new Error("Please choose a username before posting.");
+  }
+  if (!normalizedEmail) {
+    throw new Error("Please enter your email address before posting.");
+  }
+  if (!trimmedContent) {
     throw new Error("Message cannot be empty.");
   }
 
   const { db, firestoreModule } = await loadFirebaseFirestore();
   const { addDoc, collection, serverTimestamp } = firestoreModule;
-  const author = formatPostAuthorName(params.user, params.profile);
-  const subcollectionName =
+  const targetCollection =
     params.mode === "public"
-      ? PUBLIC_POSTS_SUBCOLLECTION
-      : FEEDBACK_POSTS_SUBCOLLECTION;
+      ? WAITLIST_PUBLIC_POSTS_COLLECTION
+      : WAITLIST_FEEDBACK_COLLECTION;
 
-  const colRef = collection(
-    db,
-    USERS_COLLECTION,
-    params.user.uid,
-    subcollectionName,
-  );
+  const colRef = collection(db, targetCollection);
+  const authorId = waitlistDocId(normalizedEmail);
 
   const docRef = await addDoc(colRef, {
-    author,
-    authorId: params.user.uid,
-    content: trimmed,
+    author: trimmedUname,
+    uname: trimmedUname,
+    email: normalizedEmail,
+    authorId,
+    content: trimmedContent,
     date_created: serverTimestamp(),
   });
 
-  trackEvent("post_message", { mode: params.mode });
+  trackEvent("post_message", {
+    mode: params.mode,
+    content_type: params.mode === "public" ? "public_chat" : "private_feedback",
+  });
+  trackEvent("generate_lead", {
+    source:
+      params.mode === "public" ? "waitlist_public_post" : "waitlist_feedback",
+    mode: params.mode,
+  });
+  if (params.mode === "feedback") {
+    trackEvent("contact", {
+      method: "waitlist_feedback",
+      source: "waitlist_feedback",
+    });
+  }
 
-  return { id: docRef.id, author };
+  return { id: docRef.id, author: trimmedUname };
 }
 
 /**
@@ -111,7 +115,7 @@ export async function fetchRecentPublicPosts(options?: {
   const { db, firestoreModule } = await loadFirebaseFirestore();
   const {
     Timestamp,
-    collectionGroup,
+    collection,
     getDocs,
     limit,
     orderBy,
@@ -133,7 +137,7 @@ export async function fetchRecentPublicPosts(options?: {
   ];
 
   const q = query(
-    collectionGroup(db, PUBLIC_POSTS_SUBCOLLECTION),
+    collection(db, WAITLIST_PUBLIC_POSTS_COLLECTION),
     ...constraints,
   );
   const snapshot = await getDocs(q);
@@ -182,7 +186,7 @@ export function subscribeToRecentPublicPosts(options: {
       if (cancelled) return;
       const {
         Timestamp,
-        collectionGroup,
+        collection,
         limit,
         onSnapshot,
         orderBy,
@@ -196,7 +200,7 @@ export function subscribeToRecentPublicPosts(options: {
       const cutoffTimestamp = Timestamp.fromDate(cutoff);
 
       const q = query(
-        collectionGroup(db, PUBLIC_POSTS_SUBCOLLECTION),
+        collection(db, WAITLIST_PUBLIC_POSTS_COLLECTION),
         where("date_created", ">=", cutoffTimestamp),
         orderBy("date_created", "desc"),
         limit(pageSize),
@@ -254,23 +258,4 @@ export function subscribeToRecentPublicPosts(options: {
     cancelled = true;
     unsubscribeSnapshot?.();
   };
-}
-
-/**
- * Delete a user's own public message (`users/{authorId}/public_posts/{postId}`).
- */
-export async function deleteOwnPublicPost(
-  authorId: string,
-  postId: string,
-): Promise<void> {
-  const { db, firestoreModule } = await loadFirebaseFirestore();
-  const { deleteDoc, doc } = firestoreModule;
-  const ref = doc(
-    db,
-    USERS_COLLECTION,
-    authorId,
-    PUBLIC_POSTS_SUBCOLLECTION,
-    postId,
-  );
-  await deleteDoc(ref);
 }

@@ -28,15 +28,24 @@ export default function WaitlistShareEmbed({
     }
   }, []);
 
-  const shareUrl = referralSlug
-    ? `${origin}/?ref=${encodeURIComponent(referralSlug)}`
-    : `${origin}/`;
+  function buildInviteUrl(utmSource: string): string {
+    const params = new URLSearchParams();
+    if (referralSlug) {
+      params.set("ref", referralSlug);
+    }
+    params.set("utm_source", utmSource);
+    params.set("utm_medium", "social");
+    params.set("utm_campaign", "waitlist_invite");
+    if (referralSlug) {
+      params.set("utm_content", referralSlug);
+    }
+    return `${origin}/?${params.toString()}`;
+  }
 
   const locationPhrase = communityLabel ? ` for ${communityLabel}` : "";
   const shareTitle = `${SITE_NAME} — Democracy is Social. Knowledge is Power. Politics is Local.`;
   const shareText = `I just joined the ${SITE_NAME} early access waitlist${locationPhrase}! Connect with verified neighbors, compare local candidates on standardized policy surveys, and track every election in one place:`;
 
-  const encodedUrl = encodeURIComponent(shareUrl);
   const encodedText = encodeURIComponent(shareText);
 
   const socialTargets = [
@@ -44,31 +53,32 @@ export default function WaitlistShareEmbed({
       id: "x",
       label: "Share on X",
       iconSrc: "/assets/img/social/x.svg",
-      href: `https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`,
+      href: `https://twitter.com/intent/tweet?text=${encodedText}&url=${encodeURIComponent(buildInviteUrl("x"))}`,
     },
     {
       id: "facebook",
       label: "Share on Facebook",
       iconSrc: "/assets/img/social/facebook.svg",
-      href: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
+      href: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(buildInviteUrl("facebook"))}`,
     },
     {
       id: "whatsapp",
       label: "Share on WhatsApp",
       iconSrc: "/assets/img/social/whatsapp.svg",
-      href: `https://wa.me/?text=${encodeURIComponent(`${shareText} ${shareUrl}`)}`,
+      href: `https://wa.me/?text=${encodeURIComponent(`${shareText} ${buildInviteUrl("whatsapp")}`)}`,
     },
     {
       id: "linkedin",
       label: "Share on LinkedIn",
       iconSrc: "/assets/img/social/linkedin.svg",
-      href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`,
+      href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(buildInviteUrl("linkedin"))}`,
     },
   ];
 
   async function handleCopyLink() {
+    const copyUrl = buildInviteUrl("copy_link");
     try {
-      await navigator.clipboard.writeText(shareUrl);
+      await navigator.clipboard.writeText(copyUrl);
       setCopiedLink(true);
       trackEvent("share", { method: "copy_link" });
       window.setTimeout(() => setCopiedLink(false), 2000);

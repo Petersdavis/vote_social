@@ -1,21 +1,25 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { CheckCircle2, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { signOutUser } from "@/lib/auth";
+import { getSavedWaitlistProfile } from "@/lib/waitlist";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user, profile } = useAuth();
+  const [localComplete, setLocalComplete] = useState(false);
+
+  useEffect(() => {
+    const saved = getSavedWaitlistProfile();
+    setLocalComplete(Boolean(saved?.profileComplete));
+  }, [pathname]);
 
   const isProfileStep = pathname?.startsWith("/profile");
-  const isAuthStep =
-    pathname?.startsWith("/register") ||
-    pathname?.startsWith("/login") ||
-    pathname?.startsWith("/verify-email");
+  const isComplete = Boolean(profile?.profileComplete || localComplete);
 
   return (
     <div className="min-h-screen bg-[#FAF8F5] text-slate-900 flex flex-col justify-between">
@@ -68,54 +72,27 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           aria-label="Waitlist Registration Progress"
           className="max-w-xl mx-auto mb-6 bg-white rounded-2xl border border-slate-200/90 px-4 py-3 shadow-2xs"
         >
-          <div className="grid grid-cols-3 gap-2 text-xs">
+          <div className="grid grid-cols-2 gap-2 text-xs">
             <div className="flex items-center gap-2 text-emerald-700 font-semibold">
               <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
-              <span className="truncate">1. Email Address</span>
+              <span className="truncate">1. Enter Email</span>
             </div>
 
             <div
               className={`flex items-center gap-2 font-semibold ${
-                isProfileStep
+                isComplete || isProfileStep
                   ? "text-emerald-700"
-                  : isAuthStep
-                  ? "text-blue-700"
                   : "text-slate-600"
               }`}
             >
-              {isProfileStep ? (
+              {isComplete || isProfileStep ? (
                 <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
               ) : (
-                <span className="w-4 h-4 rounded-full bg-blue-700 text-white text-[10px] font-bold flex items-center justify-center shrink-0">
+                <span className="w-4 h-4 rounded-full bg-slate-200 text-slate-700 text-[10px] font-bold flex items-center justify-center shrink-0">
                   2
                 </span>
               )}
-              <span className="truncate">2. Google / Auth</span>
-            </div>
-
-            <div
-              className={`flex items-center gap-2 font-semibold ${
-                profile?.profileComplete
-                  ? "text-emerald-700"
-                  : isProfileStep
-                  ? "text-blue-700"
-                  : "text-slate-600"
-              }`}
-            >
-              {profile?.profileComplete ? (
-                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
-              ) : (
-                <span
-                  className={`w-4 h-4 rounded-full text-[10px] font-bold flex items-center justify-center shrink-0 ${
-                    isProfileStep
-                      ? "bg-blue-700 text-white"
-                      : "bg-slate-200 text-slate-700"
-                  }`}
-                >
-                  3
-                </span>
-              )}
-              <span className="truncate">3. Profile Setup</span>
+              <span className="truncate">2. Waitlist Confirmed</span>
             </div>
           </div>
         </div>

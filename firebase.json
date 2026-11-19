@@ -32,7 +32,14 @@
     ],
     "cleanUrls": true,
     "trailingSlash": true,
-    "rewrites": [
+    "rewrites": [ 
+      {
+        "source": "/api/submitConstituentMessage",
+        "function": {
+          "functionId": "submitConstituentMessage",
+          "region": "northamerica-northeast1"
+        }
+      },
       {
         "source": "**",
         "destination": "/index.html"

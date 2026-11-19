@@ -8,13 +8,14 @@
 
 import type { User, UserCredential } from "firebase/auth";
 
-import { trackEvent } from "./analytics";
+import { getAttributionParams, trackEvent } from "./analytics";
 import { loadFirebaseAuth, loadFirebaseFirestore } from "./firebase";
 import {
   buildUserElectionSets,
   type PoliticalBoundaryOption,
   type UserElectionSet,
 } from "./opennorth";
+import { getSavedWaitlistProfile } from "./waitlist";
 
 /** Firestore collection holding one profile document per user. */
 export const USERS_COLLECTION = "users";
@@ -93,8 +94,9 @@ export type OAuthProviderId = "google";
 
 /**
  * Create the `users/{uid}` profile document if it does not already exist.
+ * Returns `true` if a new user profile document was created.
  */
-export async function ensureUserProfile(user: User): Promise<void> {
+export async function ensureUserProfile(user: User): Promise<boolean> {
   const { db, firestoreModule } = await loadFirebaseFirestore();
   const { doc, getDoc, serverTimestamp, setDoc } = firestoreModule;
   const ref = doc(db, USERS_COLLECTION, user.uid);
@@ -113,8 +115,25 @@ export async function ensureUserProfile(user: User): Promise<void> {
       },
       { merge: true },
     );
-    return;
+    return false;
   }
+
+  const attribution = getAttributionParams();
+  const savedWaitlist = getSavedWaitlistProfile();
+  const localDistricts =
+    savedWaitlist && savedWaitlist.profileComplete
+      ? {
+          postcode: savedWaitlist.postcode,
+          city: savedWaitlist.city ?? null,
+          province: savedWaitlist.province ?? null,
+          municipal_district: savedWaitlist.municipal_district ?? null,
+          provincial_district: savedWaitlist.provincial_district ?? null,
+          federal_district: savedWaitlist.federal_district ?? null,
+          election_sets: savedWaitlist.election_sets ?? [],
+          election_set_ids: savedWaitlist.election_set_ids ?? [],
+          profileComplete: true,
+        }
+      : {};
 
   await setDoc(ref, {
     uid: user.uid,
@@ -122,16 +141,20 @@ export async function ensureUserProfile(user: User): Promise<void> {
     displayName: user.displayName,
     photoURL: user.photoURL,
     providers: user.providerData.map((p) => p.providerId),
+    ...localDistricts,
+    ...(Object.keys(attribution).length > 0 ? { attribution } : {}),
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
+  return true;
 }
 
-async function ensureUserProfileSafely(user: User): Promise<void> {
+async function ensureUserProfileSafely(user: User): Promise<boolean> {
   try {
-    await ensureUserProfile(user);
+    return await ensureUserProfile(user);
   } catch (error) {
     console.error("Failed to provision user profile document", error);
+    return false;
   }
 }
 
@@ -344,8 +367,8 @@ export async function signInWithGoogle(
     provider,
     browserPopupRedirectResolver,
   );
-  await ensureUserProfileSafely(credential.user);
-  trackEvent("login", { method: "google" });
+  const isNewUser = await ensureUserProfileSafely(credential.user);
+  trackEvent(isNewUser ? "sign_up" : "login", { method: "google" });
   return credential;
 }
 

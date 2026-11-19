@@ -1,4 +1,5 @@
 import React from "react";
+import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import MermaidDiagram from "@/components/blog/MermaidDiagram";
@@ -50,6 +51,28 @@ export default function MarkdownRenderer({ content }: MarkdownRendererProps) {
           strong: ({ children }) => (
             <strong className="font-bold text-slate-900">{children}</strong>
           ),
+          a: ({ href = "", children }) => {
+            if (href.startsWith("/")) {
+              return (
+                <Link
+                  href={href}
+                  className="text-blue-700 font-semibold underline hover:text-blue-800"
+                >
+                  {children}
+                </Link>
+              );
+            }
+            return (
+              <a
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-700 font-semibold underline hover:text-blue-800"
+              >
+                {children}
+              </a>
+            );
+          },
           table: ({ children }) => (
             <div className="my-6 overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-2xs">
               <table className="w-full text-left border-collapse text-sm">

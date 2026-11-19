@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import {
   CheckCircle2,
   ChevronDown,
@@ -9,7 +8,7 @@ import {
   Lock,
   MessageSquare,
   Send,
-  Trash2,
+  UserCircle2,
 } from "lucide-react";
 import type { DocumentData, QueryDocumentSnapshot } from "firebase/firestore";
 
@@ -17,16 +16,23 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import {
   WAITLIST_MESSAGES_PAGE_SIZE,
   createWaitlistPost,
-  deleteOwnPublicPost,
   fetchRecentPublicPosts,
-  formatPostAuthorName,
   subscribeToRecentPublicPosts,
   type PostMode,
   type WaitlistPost,
 } from "@/lib/posts";
+import {
+  WAITLIST_PROFILE_UPDATED_EVENT,
+  getSavedWaitlistProfile,
+  saveWaitlistUserIdentity,
+  waitlistDocId,
+} from "@/lib/waitlist";
 
 function formatRelativeTime(date: Date): string {
-  const diffSeconds = Math.max(0, Math.floor((Date.now() - date.getTime()) / 1000));
+  const diffSeconds = Math.max(
+    0,
+    Math.floor((Date.now() - date.getTime()) / 1000),
+  );
   if (diffSeconds < 60) return "just now";
   const diffMinutes = Math.floor(diffSeconds / 60);
   if (diffMinutes < 60) return `${diffMinutes}m ago`;
@@ -35,7 +41,15 @@ function formatRelativeTime(date: Date): string {
 }
 
 export default function WaitlistMessageBoard() {
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
+
+  const [savedEmail, setSavedEmail] = useState("");
+  const [savedUname, setSavedUname] = useState("");
+  const [unameDraft, setUnameDraft] = useState("");
+  const [emailDraft, setEmailDraft] = useState("");
+  const [editingIdentity, setEditingIdentity] = useState(false);
+  const [identitySaving, setIdentitySaving] = useState(false);
+  const [identityError, setIdentityError] = useState<string | null>(null);
 
   const [mode, setMode] = useState<PostMode>("public");
   const [content, setContent] = useState("");
@@ -49,12 +63,35 @@ export default function WaitlistMessageBoard() {
   const [loadingInitial, setLoadingInitial] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
-  const [deletingIds, setDeletingIds] = useState<Record<string, boolean>>({});
 
   // Keep the cutoff timestamp fixed for the session
   const cutoffRef = useRef<Date>(new Date(Date.now() - 24 * 60 * 60 * 1000));
   const lastDocRef = useRef<QueryDocumentSnapshot<DocumentData> | null>(null);
   const hasLoadedMoreRef = useRef(false);
+
+  // Sync saved email + uname from localStorage
+  useEffect(() => {
+    const syncFromStorage = () => {
+      const saved = getSavedWaitlistProfile();
+      const resolvedEmail = saved?.email || user?.email || "";
+      const resolvedUname = saved?.uname || "";
+      setSavedEmail(resolvedEmail);
+      setSavedUname(resolvedUname);
+      setEmailDraft((prev) => prev || resolvedEmail);
+      setUnameDraft((prev) => prev || resolvedUname);
+    };
+
+    syncFromStorage();
+    window.addEventListener(WAITLIST_PROFILE_UPDATED_EVENT, syncFromStorage);
+    window.addEventListener("storage", syncFromStorage);
+    return () => {
+      window.removeEventListener(
+        WAITLIST_PROFILE_UPDATED_EVENT,
+        syncFromStorage,
+      );
+      window.removeEventListener("storage", syncFromStorage);
+    };
+  }, [user?.email]);
 
   useEffect(() => {
     setLoadingInitial(true);
@@ -117,9 +154,33 @@ export default function WaitlistMessageBoard() {
     }
   }
 
+  async function handleIdentitySubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (identitySaving) return;
+    setIdentityError(null);
+    setIdentitySaving(true);
+    try {
+      const updated = await saveWaitlistUserIdentity({
+        uname: unameDraft,
+        email: savedEmail || emailDraft,
+      });
+      setSavedEmail(updated.email);
+      setSavedUname(updated.uname ?? "");
+      setEditingIdentity(false);
+    } catch (error) {
+      setIdentityError(
+        error instanceof Error
+          ? error.message
+          : "Please enter a valid username and email.",
+      );
+    } finally {
+      setIdentitySaving(false);
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!user || !content.trim() || submitting) return;
+    if (!savedUname || !savedEmail || !content.trim() || submitting) return;
 
     setSubmitError(null);
     setFeedbackSuccess(false);
@@ -128,8 +189,8 @@ export default function WaitlistMessageBoard() {
     const text = content.trim();
     try {
       await createWaitlistPost({
-        user,
-        profile,
+        uname: savedUname,
+        email: savedEmail,
         content: text,
         mode,
       });
@@ -152,24 +213,8 @@ export default function WaitlistMessageBoard() {
     }
   }
 
-  async function handleDelete(post: WaitlistPost) {
-    if (!user || user.uid !== post.authorId) return;
-    setDeletingIds((prev) => ({ ...prev, [post.id]: true }));
-    try {
-      await deleteOwnPublicPost(post.authorId, post.id);
-      setOlderPosts((prev) => prev.filter((item) => item.id !== post.id));
-    } catch (error) {
-      console.error("Failed to delete public message", error);
-    } finally {
-      setDeletingIds((prev) => {
-        const next = { ...prev };
-        delete next[post.id];
-        return next;
-      });
-    }
-  }
-
-  const authorPreview = user ? formatPostAuthorName(user, profile) : "";
+  const hasIdentity = Boolean(savedEmail && savedUname) && !editingIdentity;
+  const currentAuthorId = savedEmail ? waitlistDocId(savedEmail) : "";
 
   return (
     <div className="rounded-2xl bg-white border border-slate-200/90 p-5 sm:p-6 shadow-2xs text-left">
@@ -189,8 +234,8 @@ export default function WaitlistMessageBoard() {
         </div>
       </div>
 
-      {/* Composer (authenticated users) or Sign-In prompt */}
-      {user ? (
+      {/* Composer (once uname + email are in localStorage) or Choose Username step */}
+      {hasIdentity ? (
         <form
           aria-label="Community message board composer"
           onSubmit={handleSubmit}
@@ -237,9 +282,24 @@ export default function WaitlistMessageBoard() {
               </button>
             </div>
 
-            <span className="text-xs text-slate-600">
-              Posting as <strong className="text-slate-800">{authorPreview}</strong>
-            </span>
+            <div className="flex items-center gap-2 text-xs text-slate-600">
+              <span>
+                Posting as{" "}
+                <strong className="text-slate-900">@{savedUname}</strong>
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setUnameDraft(savedUname);
+                  setEmailDraft(savedEmail);
+                  setIdentityError(null);
+                  setEditingIdentity(true);
+                }}
+                className="text-blue-700 hover:underline font-bold cursor-pointer"
+              >
+                Change
+              </button>
+            </div>
           </div>
 
           <label htmlFor="waitlist-message-textarea" className="sr-only">
@@ -281,8 +341,8 @@ export default function WaitlistMessageBoard() {
           <div className="flex items-center justify-between gap-2">
             <span className="text-[11px] text-slate-600">
               {mode === "public"
-                ? "Visible to everyone on the waitlist • You can delete your posts anytime"
-                : ""}
+                ? "Visible to everyone on the waitlist"
+                : "Sent privately to the Vote Social team"}
             </span>
             <button
               type="submit"
@@ -305,25 +365,90 @@ export default function WaitlistMessageBoard() {
           </div>
         </form>
       ) : (
-        <div className="mb-5 p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs">
-          <span className="text-slate-600">
-            Join the waitlist or sign in to post on the community board or send private feedback.
-          </span>
-          <div className="flex items-center gap-2">
-            <Link
-              href="/login"
-              className="px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-slate-800 font-bold transition"
-            >
-              Sign In
-            </Link>
-            <Link
-              href="/register"
-              className="px-3 py-1.5 rounded-lg bg-blue-700 hover:bg-blue-800 text-white font-bold transition"
-            >
-              Join Waitlist
-            </Link>
+        <form
+          aria-label="Choose a username to post in the chat"
+          onSubmit={handleIdentitySubmit}
+          className="mb-6 bg-slate-50 p-4 rounded-xl border border-slate-200/90 space-y-3"
+        >
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-xs font-bold text-slate-800">
+              <UserCircle2 className="w-4 h-4 text-blue-700 shrink-0" />
+              <span>
+                {savedEmail
+                  ? "Choose a username before posting to the chat"
+                  : "Enter your email and choose a username to post"}
+              </span>
+            </div>
+            {editingIdentity && savedUname && (
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingIdentity(false);
+                  setIdentityError(null);
+                }}
+                className="text-xs font-bold text-slate-600 hover:text-slate-900 cursor-pointer"
+              >
+                Cancel
+              </button>
+            )}
           </div>
-        </div>
+
+          <div className="flex flex-col sm:flex-row gap-2.5">
+            {!savedEmail && (
+              <div className="flex-1">
+                <label htmlFor="chat-identity-email" className="sr-only">
+                  Email address
+                </label>
+                <input
+                  id="chat-identity-email"
+                  type="email"
+                  required
+                  value={emailDraft}
+                  onChange={(e) => {
+                    setEmailDraft(e.target.value);
+                    if (identityError) setIdentityError(null);
+                  }}
+                  placeholder="Email address (you@example.com)"
+                  className="w-full px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-xs text-slate-900 placeholder:text-slate-500 focus:outline-none focus:border-blue-600"
+                />
+              </div>
+            )}
+
+            <div className="flex-1">
+              <label htmlFor="chat-identity-uname" className="sr-only">
+                Username
+              </label>
+              <input
+                id="chat-identity-uname"
+                type="text"
+                required
+                minLength={2}
+                maxLength={40}
+                value={unameDraft}
+                onChange={(e) => {
+                  setUnameDraft(e.target.value);
+                  if (identityError) setIdentityError(null);
+                }}
+                placeholder="Choose a username (e.g. DanforthVoter)"
+                className="w-full px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-xs text-slate-900 placeholder:text-slate-500 focus:outline-none focus:border-blue-600"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={identitySaving || !unameDraft.trim()}
+              className="px-4 py-2 rounded-xl bg-blue-700 hover:bg-blue-800 text-white text-xs font-bold transition cursor-pointer disabled:opacity-50 shrink-0"
+            >
+              {identitySaving ? "Saving…" : "Continue to Chat"}
+            </button>
+          </div>
+
+          {identityError && (
+            <p role="alert" className="text-xs text-rose-600 font-semibold">
+              {identityError}
+            </p>
+          )}
+        </form>
       )}
 
       {/* Public Messages Feed (Last 24h, 25 per page) */}
@@ -350,8 +475,10 @@ export default function WaitlistMessageBoard() {
           className="space-y-2.5"
         >
           {posts.map((post) => {
-            const isOwn = Boolean(user && user.uid === post.authorId);
-            const isDeleting = Boolean(deletingIds[post.id]);
+            const isOwn = Boolean(
+              (currentAuthorId && post.authorId === currentAuthorId) ||
+                (savedUname && post.author === savedUname),
+            );
 
             return (
               <div
@@ -361,7 +488,7 @@ export default function WaitlistMessageBoard() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap mb-1">
                     <span className="text-xs font-bold text-slate-900">
-                      {post.author}
+                      @{post.author}
                     </span>
                     {isOwn && (
                       <span className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 font-semibold">
@@ -376,19 +503,6 @@ export default function WaitlistMessageBoard() {
                     {post.content}
                   </p>
                 </div>
-
-                {isOwn && (
-                  <button
-                    type="button"
-                    onClick={() => void handleDelete(post)}
-                    disabled={isDeleting}
-                    title="Delete your public message"
-                    aria-label={`Delete your public message: ${post.content.slice(0, 50)}`}
-                    className="p-1.5 rounded-lg text-slate-600 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer shrink-0 disabled:opacity-50"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                )}
               </div>
             );
           })}

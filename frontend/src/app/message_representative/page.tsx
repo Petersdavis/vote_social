@@ -745,7 +745,7 @@ function CommsFeatureView() {
                   >
                     <div>
                       <label
-                        htmlFor="comms-postcode"
+                        htmlFor="message-representative-postcode"
                         className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5"
                       >
                         Canadian Postal Code *
@@ -753,7 +753,7 @@ function CommsFeatureView() {
                       <div className="relative">
                         <MapPin className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                         <input
-                          id="comms-postcode"
+                        id="message-representative-postcode"
                           type="text"
                           required
                           maxLength={7}
@@ -1172,13 +1172,13 @@ function CommsFeatureView() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                       <div>
                         <label
-                          htmlFor="comms-sender-name"
+                          htmlFor="message-representative-sender-name"
                           className="sr-only"
                         >
                           Your Name or Username
                         </label>
                         <input
-                          id="comms-sender-name"
+                          id="message-representative-sender-name"
                           type="text"
                           required
                           minLength={2}
@@ -1192,13 +1192,13 @@ function CommsFeatureView() {
 
                       <div>
                         <label
-                          htmlFor="comms-sender-email"
+                          htmlFor="message-representative-sender-email"
                           className="sr-only"
                         >
                           Your Email Address
                         </label>
                         <input
-                          id="comms-sender-email"
+                          id="message-representative-sender-email"
                           type="email"
                           required
                           value={senderEmail}
@@ -1210,11 +1210,11 @@ function CommsFeatureView() {
                     </div>
 
                     <div>
-                      <label htmlFor="comms-subject" className="sr-only">
+                        <label htmlFor="message-representative-subject" className="sr-only">
                         Subject Line
                       </label>
                       <input
-                        id="comms-subject"
+                        id="message-representative-subject"
                         type="text"
                         required
                         minLength={3}
@@ -1227,11 +1227,11 @@ function CommsFeatureView() {
                     </div>
 
                     <div>
-                      <label htmlFor="comms-body" className="sr-only">
+                      <label htmlFor="message-representative-body" className="sr-only">
                         Message Body
                       </label>
                       <textarea
-                        id="comms-body"
+                        id="message-representative-body"
                         rows={4}
                         required
                         minLength={10}

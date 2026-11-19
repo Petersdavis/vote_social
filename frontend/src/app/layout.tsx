@@ -153,8 +153,32 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
   window.dataLayer = window.dataLayer || [];
-  window.dataLayer.push({'gtm.start': new Date().getTime(), event: 'gtm.js'});
   function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', {
+    'ad_storage': 'denied',
+    'ad_user_data': 'denied',
+    'ad_personalization': 'denied',
+    'analytics_storage': 'denied',
+    'personalization_storage': 'denied',
+    'functionality_storage': 'denied',
+    'security_storage': 'granted',
+    'url_passthrough': true
+  });
+  try {
+    var sp = new URLSearchParams(window.location.search);
+    var keys = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'ref'];
+    var found = {};
+    var hasAny = false;
+    keys.forEach(function(k) {
+      var v = sp.get(k);
+      if (v) { found[k] = v; hasAny = true; }
+    });
+    if (hasAny) {
+      found.landing_page = window.location.pathname;
+      sessionStorage.setItem('vs_attribution', JSON.stringify(found));
+    }
+  } catch (e) {}
+  window.dataLayer.push({'gtm.start': new Date().getTime(), event: 'gtm.js'});
   gtag('js', new Date());
   (function() {
     var loaded = false;
