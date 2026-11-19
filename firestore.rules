@@ -61,12 +61,42 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Create-only public waitlist chat messages (`waitlist_posts/{postId}`).
+    // Readable by the public chat window, append-only (no update/delete).
+    match /waitlist_posts/{postId} {
+      allow read: if true;
+      allow create: if request.resource.data.author is string
+        && request.resource.data.author.size() >= 2
+        && request.resource.data.author.size() <= 50
+        && request.resource.data.email is string
+        && request.resource.data.email.size() > 3
+        && request.resource.data.email.size() <= 320
+        && request.resource.data.content is string
+        && request.resource.data.content.size() > 0
+        && request.resource.data.content.size() <= 2000;
+      allow update, delete: if false;
+    }
+
+    // Strictly write-only private waitlist product feedback (`waitlist_feedback/{postId}`).
+    match /waitlist_feedback/{postId} {
+      allow read: if false;
+      allow create: if request.resource.data.author is string
+        && request.resource.data.author.size() >= 2
+        && request.resource.data.author.size() <= 50
+        && request.resource.data.email is string
+        && request.resource.data.email.size() > 3
+        && request.resource.data.email.size() <= 320
+        && request.resource.data.content is string
+        && request.resource.data.content.size() > 0
+        && request.resource.data.content.size() <= 4000;
+      allow update, delete: if false;
+    }
+
     // Sparse collection of active ElectionSets (`electionSets/{setId}`) with
     // waitlist user counters.
     match /electionSets/{setId} {
       allow read: if true;
-      allow create, update: if request.auth != null
-        && request.resource.data.id == setId
+      allow create, update: if request.resource.data.id == setId
         && request.resource.data.name is string
         && request.resource.data.tier in ['municipal', 'provincial', 'federal']
         && request.resource.data.count is int
@@ -91,6 +121,27 @@ service cloud.firestore {
 
     // Public read-only platform metadata (e.g., `public_metadata/stats` user_count).
     match /public_metadata/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Public constituent messages to representatives (`comms_public/{msgId}`).
+    // Written exclusively by the `submitConstituentMessage` Cloud Function.
+    match /comms_public/{msgId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Private constituent messages (`comms_private/{msgId}`).
+    // Strictly server-managed via Cloud Functions.
+    match /comms_private/{msgId} {
+      allow read, write: if false;
+    }
+
+    // Representative unsubscribe blocklist (`rep_email_blocklist/{repId}`).
+    // Readable by the client to warn users when a representative has opted out;
+    // writable only by the HMAC-verified `unsubscribeRepresentative` Cloud Function.
+    match /rep_email_blocklist/{repId} {
       allow read: if true;
       allow write: if false;
     }

@@ -25,8 +25,14 @@ import "./firebase";
 // server-side in the read-only `waitlistCounts` collection.
 export {
   onUserCreated,
+  onWaitlistCreated,
   recomputeWaitlistCounts,
 } from "./waitlist/aggregateCounts";
+
+export {
+  submitConstituentMessage,
+  unsubscribeRepresentative,
+} from "./message_representative/constituentComms";
 
 // import {onRequest} from "firebase-functions/https";
 // import * as logger from "firebase-functions/logger";

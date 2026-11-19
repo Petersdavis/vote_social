@@ -23,6 +23,22 @@ export interface OpenNorthBoundaryRaw {
   };
 }
 
+export interface OpenNorthRepresentativeRaw {
+  name: string;
+  elected_office: string;
+  district_name: string;
+  representative_set_name: string;
+  email?: string;
+  party_name?: string;
+  photo_url?: string;
+  url?: string;
+  personal_url?: string;
+  related?: {
+    boundary_url?: string;
+    representative_set_url?: string;
+  };
+}
+
 export interface OpenNorthPostcodeResponse {
   code: string;
   city?: string;
@@ -33,9 +49,29 @@ export interface OpenNorthPostcodeResponse {
   };
   boundaries_centroid?: OpenNorthBoundaryRaw[];
   boundaries_concordance?: OpenNorthBoundaryRaw[];
+  representatives_centroid?: OpenNorthRepresentativeRaw[];
+  representatives_concordance?: OpenNorthRepresentativeRaw[];
 }
 
-export type GovernanceTierSlug = "municipal" | "provincial" | "federal";
+export type GovernanceTierSlug =
+  | "municipal"
+  | "regional"
+  | "provincial"
+  | "federal";
+
+export interface RepresentativeOption {
+  /** Deterministic ID derived from normalized email or name+boundary */
+  repId: string;
+  name: string;
+  elected_office: string;
+  district_name: string;
+  representative_set_name: string;
+  email: string;
+  party_name: string | null;
+  photo_url: string | null;
+  boundary_url: string;
+  tier: GovernanceTierSlug;
+}
 
 export interface PoliticalBoundaryOption {
   /** Unique boundary URL path from OpenNorth, e.g. "/boundaries/mississauga-wards/ward-1/" */
@@ -136,7 +172,80 @@ export interface PostcodeBoundaryResolution {
   province: string | null;
   federalOptions: PoliticalBoundaryOption[];
   provincialOptions: PoliticalBoundaryOption[];
+  regionalOptions: PoliticalBoundaryOption[];
   municipalOptions: PoliticalBoundaryOption[];
+  /** Underlying city/municipality (census subdivision) and regional (census division) boundaries for Mayor / Regional Chair lookup */
+  cityBoundaries: PoliticalBoundaryOption[];
+  regionBoundaries: PoliticalBoundaryOption[];
+  /** Representatives returned directly in the postcode lookup */
+  postcodeRepresentatives: RepresentativeOption[];
+}
+
+export function repIdFromEmail(email: string): string {
+  return email.trim().toLowerCase().replace(/[^a-z0-9@._+-]/g, "_");
+}
+
+function classifyRepresentativeTier(
+  rep: OpenNorthRepresentativeRaw,
+): GovernanceTierSlug {
+  const set = (rep.representative_set_name || "").toLowerCase();
+  const office = (rep.elected_office || "").toLowerCase();
+  const bUrl = (rep.related?.boundary_url || "").toLowerCase();
+
+  if (
+    set.includes("house of commons") ||
+    office === "mp" ||
+    bUrl.includes("federal-electoral-districts")
+  ) {
+    return "federal";
+  }
+  if (
+    set.includes("legislative assembly") ||
+    set.includes("national assembly") ||
+    set.includes("house of assembly") ||
+    office === "mpp" ||
+    office === "mla" ||
+    office === "mna" ||
+    office === "mha"
+  ) {
+    return "provincial";
+  }
+  if (
+    set.includes("regional") ||
+    set.includes("county") ||
+    office.includes("regional") ||
+    bUrl.includes("census-divisions") ||
+    bUrl.includes("peel-wards") ||
+    bUrl.includes("york-wards") ||
+    bUrl.includes("durham-wards") ||
+    bUrl.includes("halton-wards") ||
+    bUrl.includes("niagara-wards")
+  ) {
+    return "regional";
+  }
+  return "municipal";
+}
+
+function toRepresentativeOption(
+  raw: OpenNorthRepresentativeRaw,
+): RepresentativeOption | null {
+  const email = (raw.email || "").trim();
+  const boundaryUrl = (raw.related?.boundary_url || "").trim();
+  if (!raw.name || !email || !boundaryUrl) {
+    return null;
+  }
+  return {
+    repId: repIdFromEmail(email),
+    name: raw.name.trim(),
+    elected_office: (raw.elected_office || "Representative").trim(),
+    district_name: (raw.district_name || "").trim(),
+    representative_set_name: (raw.representative_set_name || "").trim(),
+    email,
+    party_name: raw.party_name ? raw.party_name.trim() : null,
+    photo_url: raw.photo_url ? raw.photo_url.trim() : null,
+    boundary_url: boundaryUrl,
+    tier: classifyRepresentativeTier(raw),
+  };
 }
 
 const CANADIAN_POSTCODE_REGEX = /^[A-Z]\d[A-Z]\d[A-Z]\d$/;
@@ -161,32 +270,88 @@ export function isValidCanadianPostcode(raw: string): boolean {
 }
 
 /**
- * Score a boundary option so newer representation orders sort before older ones.
+ * Extract the `/boundaries/<set-slug>/` prefix from a boundary URL.
  */
-function scoreBoundaryFreshness(option: PoliticalBoundaryOption): number {
-  const setUrl = (option.boundary_set_url ?? option.url).toLowerCase();
-  if (setUrl.includes("2023")) return 100;
-  if (setUrl.includes("2022") || setUrl.includes("2021")) return 95;
-  if (setUrl.includes("2018") || setUrl.includes("2015")) return 90;
-  if (setUrl.includes("2013")) return 80;
-  if (setUrl.includes("2003") || setUrl.includes("2005")) return 20;
-  // Unversioned canonical sets like `/boundary-sets/federal-electoral-districts/`
-  return 85;
+function getBoundarySetPrefix(url: string): string {
+  const match = /^(\/boundaries\/[^/]+\/)/i.exec(url.trim());
+  return match ? match[1].toLowerCase() : url.trim().toLowerCase();
 }
 
 /**
- * Deduplicate boundary options by normalized district name, keeping the freshest
- * representation order for each distinct name.
+ * Score a boundary option so boundary sets with active sitting representatives
+ * and newer representation orders sort before older/retired ones.
  */
-function deduplicateByName(
+function scoreBoundaryFreshness(
+  option: PoliticalBoundaryOption,
+  activeRepBoundaryUrls?: Set<string>,
+  activeRepSetPrefixes?: Set<string>,
+): number {
+  let score = 85;
+  const setUrl = (option.boundary_set_url ?? option.url).toLowerCase();
+  if (setUrl.includes("2023") || setUrl.includes("2024")) score = 100;
+  else if (setUrl.includes("2022") || setUrl.includes("2021")) score = 95;
+  else if (setUrl.includes("2018") || setUrl.includes("2015")) score = 90;
+  else if (setUrl.includes("2013")) score = 70;
+  else if (
+    setUrl.includes("2003") ||
+    setUrl.includes("2005") ||
+    setUrl.includes("2010")
+  ) {
+    score = 20;
+  }
+
+  const normalizedUrl = option.url.trim().toLowerCase();
+  const prefix = getBoundarySetPrefix(option.url);
+
+  if (activeRepBoundaryUrls?.has(normalizedUrl)) {
+    score += 1000;
+  } else if (activeRepSetPrefixes?.has(prefix)) {
+    score += 500;
+  }
+
+  return score;
+}
+
+/**
+ * Filter a list of boundaries in a governance tier so retired historical
+ * boundary sets (e.g. 2003 Federal, 2005 Ontario, 2010 Toronto Wards) are
+ * excluded when an active boundary set with sitting representatives exists,
+ * then deduplicate by normalized district name.
+ */
+function filterAndDeduplicateTierBoundaries(
   options: PoliticalBoundaryOption[],
+  activeRepBoundaryUrls: Set<string>,
+  activeRepSetPrefixes: Set<string>,
   includeSetNameInKey = false,
 ): PoliticalBoundaryOption[] {
-  const sorted = [...options].sort(
-    (a, b) => scoreBoundaryFreshness(b) - scoreBoundaryFreshness(a),
-  );
-  const seen = new Map<string, PoliticalBoundaryOption>();
+  if (options.length === 0) return [];
 
+  // 1. If any options belong to a boundary set that has active representatives,
+  //    keep only options from active representative boundary sets.
+  const matchingActiveSet = options.filter((opt) =>
+    activeRepSetPrefixes.has(getBoundarySetPrefix(opt.url)),
+  );
+  let pool = matchingActiveSet.length > 0 ? matchingActiveSet : options;
+
+  // 2. Otherwise, discard explicitly retired historical orders (score <= 70)
+  //    whenever newer boundary sets exist in the pool.
+  const modernPool = pool.filter(
+    (opt) =>
+      scoreBoundaryFreshness(opt, activeRepBoundaryUrls, activeRepSetPrefixes) >
+      75,
+  );
+  if (modernPool.length > 0) {
+    pool = modernPool;
+  }
+
+  // 3. Sort freshest / rep-backed first and deduplicate by district name
+  const sorted = [...pool].sort(
+    (a, b) =>
+      scoreBoundaryFreshness(b, activeRepBoundaryUrls, activeRepSetPrefixes) -
+      scoreBoundaryFreshness(a, activeRepBoundaryUrls, activeRepSetPrefixes),
+  );
+
+  const seen = new Map<string, PoliticalBoundaryOption>();
   for (const opt of sorted) {
     const key = includeSetNameInKey
       ? `${opt.name.trim().toLowerCase()}::${opt.boundary_set_name.trim().toLowerCase()}`
@@ -224,12 +389,18 @@ export function parseOpenNorthPostcode(
 
   const federalRaw: PoliticalBoundaryOption[] = [];
   const provincialRaw: PoliticalBoundaryOption[] = [];
+  const regionalRaw: PoliticalBoundaryOption[] = [];
   const wardRaw: PoliticalBoundaryOption[] = [];
   const censusSubdivisionRaw: PoliticalBoundaryOption[] = [];
+  const censusDivisionRaw: PoliticalBoundaryOption[] = [];
 
   for (const item of allRaw) {
     const setName = (item.boundary_set_name || "").toLowerCase();
-    const setUrl = (item.related?.boundary_set_url || item.url || "").toLowerCase();
+    const setUrl = (
+      item.related?.boundary_set_url ||
+      item.url ||
+      ""
+    ).toLowerCase();
     const option = toBoundaryOption(item);
 
     if (
@@ -244,6 +415,15 @@ export function parseOpenNorthPostcode(
     ) {
       provincialRaw.push(option);
     } else if (
+      setName.includes("regional") ||
+      setUrl.includes("peel-wards") ||
+      setUrl.includes("york-wards") ||
+      setUrl.includes("halton-wards") ||
+      setUrl.includes("durham-wards") ||
+      setUrl.includes("niagara-wards")
+    ) {
+      regionalRaw.push(option);
+    } else if (
       setName.includes("ward") ||
       setName.includes("borough") ||
       setName.includes("arrondissement") ||
@@ -252,17 +432,86 @@ export function parseOpenNorthPostcode(
       wardRaw.push(option);
     } else if (setName.includes("census subdivision")) {
       censusSubdivisionRaw.push(option);
+    } else if (setName.includes("census division")) {
+      censusDivisionRaw.push(option);
     }
   }
 
-  const federalOptions = deduplicateByName(federalRaw, false);
-  const provincialOptions = deduplicateByName(provincialRaw, false);
-  // For municipal boundaries, prefer explicit municipal/regional wards when present;
+  const allRepsRaw: OpenNorthRepresentativeRaw[] = [
+    ...(data.representatives_centroid ?? []),
+    ...(data.representatives_concordance ?? []),
+  ];
+  const seenRepKeys = new Set<string>();
+  const postcodeRepresentatives: RepresentativeOption[] = [];
+  for (const rawRep of allRepsRaw) {
+    const parsed = toRepresentativeOption(rawRep);
+    if (!parsed) continue;
+    const dedupKey = `${parsed.repId}::${parsed.representative_set_name.toLowerCase()}`;
+    if (!seenRepKeys.has(dedupKey)) {
+      seenRepKeys.add(dedupKey);
+      postcodeRepresentatives.push(parsed);
+    }
+  }
+
+  const hasRegionalReps = postcodeRepresentatives.some(
+    (r) => r.tier === "regional",
+  );
+
+  const activeRepBoundaryUrls = new Set<string>(
+    postcodeRepresentatives.map((r) => r.boundary_url.trim().toLowerCase()),
+  );
+  const activeRepSetPrefixes = new Set<string>(
+    postcodeRepresentatives.map((r) => getBoundarySetPrefix(r.boundary_url)),
+  );
+
+  const federalOptions = filterAndDeduplicateTierBoundaries(
+    federalRaw,
+    activeRepBoundaryUrls,
+    activeRepSetPrefixes,
+    false,
+  );
+  const provincialOptions = filterAndDeduplicateTierBoundaries(
+    provincialRaw,
+    activeRepBoundaryUrls,
+    activeRepSetPrefixes,
+    false,
+  );
+  const cityBoundaries = filterAndDeduplicateTierBoundaries(
+    censusSubdivisionRaw,
+    activeRepBoundaryUrls,
+    activeRepSetPrefixes,
+    false,
+  );
+  const regionBoundaries = filterAndDeduplicateTierBoundaries(
+    censusDivisionRaw,
+    activeRepBoundaryUrls,
+    activeRepSetPrefixes,
+    false,
+  );
+
+  const regionalOptions =
+    regionalRaw.length > 0
+      ? filterAndDeduplicateTierBoundaries(
+          regionalRaw,
+          activeRepBoundaryUrls,
+          activeRepSetPrefixes,
+          true,
+        )
+      : hasRegionalReps
+      ? regionBoundaries
+      : [];
+
+  // For municipal boundaries, prefer explicit municipal wards when present;
   // otherwise fall back to Census Subdivision (municipality).
   const municipalOptions =
     wardRaw.length > 0
-      ? deduplicateByName(wardRaw, true)
-      : deduplicateByName(censusSubdivisionRaw, false);
+      ? filterAndDeduplicateTierBoundaries(
+          wardRaw,
+          activeRepBoundaryUrls,
+          activeRepSetPrefixes,
+          true,
+        )
+      : cityBoundaries;
 
   return {
     code: cleanCode,
@@ -271,8 +520,60 @@ export function parseOpenNorthPostcode(
     province: data.province ?? null,
     federalOptions,
     provincialOptions,
+    regionalOptions,
     municipalOptions,
+    cityBoundaries,
+    regionBoundaries,
+    postcodeRepresentatives,
   };
+}
+
+/**
+ * Fetch representatives for a specific OpenNorth boundary URL (used when a
+ * user selects an alternate concordance boundary not covered by centroid reps).
+ */
+export async function fetchRepresentativesForBoundary(
+  boundaryUrl: string,
+  signal?: AbortSignal,
+): Promise<RepresentativeOption[]> {
+  const cleanUrl = boundaryUrl.startsWith("/")
+    ? boundaryUrl
+    : `/${boundaryUrl}`;
+  const normalizedUrl = cleanUrl.endsWith("/") ? cleanUrl : `${cleanUrl}/`;
+
+  const response = await fetch(
+    `https://represent.opennorth.ca${normalizedUrl}representatives/?format=json`,
+    {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+      signal,
+    },
+  );
+
+  if (!response.ok) {
+    return [];
+  }
+
+  const data = (await response.json()) as {
+    objects?: OpenNorthRepresentativeRaw[];
+  };
+  const results: RepresentativeOption[] = [];
+  for (const raw of data.objects ?? []) {
+    const withBoundary: OpenNorthRepresentativeRaw = {
+      ...raw,
+      related: {
+        ...raw.related,
+        boundary_url: raw.related?.boundary_url || normalizedUrl,
+      },
+    };
+    const parsed = toRepresentativeOption(withBoundary);
+    if (parsed) {
+      results.push(parsed);
+    }
+  }
+  return results;
 }
 
 /**

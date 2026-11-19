@@ -26,8 +26,16 @@ module.exports = {
     "import",
   ],
   rules: {
-    "quotes": ["error", "double"],
+    "quotes": ["error", "double", {"allowTemplateLiterals": true, "avoidEscape": true}],
     "import/no-unresolved": 0,
-    "indent": ["error", 2],
+    "indent": "off",
+    "max-len": "off",
+    "object-curly-spacing": "off",
+    "operator-linebreak": "off",
+    "require-jsdoc": "off",
+    "valid-jsdoc": "off",
+    "quote-props": "off",
+    "comma-dangle": "off",
+    "space-before-function-paren": "off",
   },
 };
