@@ -8,41 +8,89 @@ const WaitlistMessageBoard = dynamic(
   () => import("@/components/screens/WaitlistMessageBoard"),
 );
 
+export interface CarouselSlideItem {
+  id: string;
+  label: string;
+  content: React.ReactNode;
+}
+
 interface WaitlistCarouselProps {
-  /** Pill label for Slide 1, e.g. "Waitlist Signup" or "Invite Neighbors" */
-  slide1Label: string;
-  /** Pill label for Slide 2, e.g. "Join the Conversation" or "Give Feedback" */
+  /** Multi-slide configuration (e.g., Waitlist | Feedback | Blog | Our Why | Demo Pages) */
+  slides?: CarouselSlideItem[];
+  /** Optional controlled slide index */
+  activeSlideIndex?: number;
+  /** Optional callback when active slide changes */
+  onSlideChange?: (index: number) => void;
+  /** Legacy 2-slide props for backwards compatibility */
+  slide1Label?: string;
   slide2Label?: string;
-  /** Label on the Back button inside Slide 2 */
-  backToSlide1Label: string;
-  /** Slide 1 primary CTA content */
-  children: React.ReactNode;
+  backToSlide1Label?: string;
+  children?: React.ReactNode;
 }
 
 export default function WaitlistCarousel({
-  slide1Label,
-  slide2Label = "Join the Conversation",
-  backToSlide1Label,
+  slides,
+  activeSlideIndex,
+  onSlideChange,
+  slide1Label = "Waitlist",
+  slide2Label = "Feedback",
+  backToSlide1Label = "Back to Waitlist",
   children,
 }: WaitlistCarouselProps) {
-  const [activeSlide, setActiveSlide] = useState<0 | 1>(0);
-  const [slide2Visited, setSlide2Visited] = useState(false);
+  const [internalSlide, setInternalSlide] = useState<number>(0);
+  const activeSlide =
+    activeSlideIndex !== undefined ? activeSlideIndex : internalSlide;
+
+  const [visitedSlides, setVisitedSlides] = useState<Record<number, boolean>>({
+    0: true,
+  });
   const [carouselHeight, setCarouselHeight] = useState<number | undefined>(
     undefined,
   );
-  const slide0Ref = useRef<HTMLDivElement>(null);
-  const slide1Ref = useRef<HTMLDivElement>(null);
+  const slideRefs = useRef<Array<HTMLDivElement | null>>([]);
 
-  const selectSlide = (slide: 0 | 1) => {
-    if (slide === 1) {
-      setSlide2Visited(true);
+  const selectSlide = (index: number) => {
+    setVisitedSlides((prev) => ({ ...prev, [index]: true }));
+    if (activeSlideIndex === undefined) {
+      setInternalSlide(index);
     }
-    setActiveSlide(slide);
+    onSlideChange?.(index);
   };
 
+  const resolvedSlides: CarouselSlideItem[] = slides ?? [
+    {
+      id: "slide-0",
+      label: slide1Label,
+      content: children,
+    },
+    {
+      id: "slide-1",
+      label: slide2Label,
+      content: (
+        <div className="max-w-3xl mx-auto space-y-6 text-left">
+          <div className="flex items-center justify-between gap-3">
+            <button
+              type="button"
+              onClick={() => selectSlide(0)}
+              className="px-3.5 py-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-xs font-bold text-slate-700 inline-flex items-center gap-1.5 transition cursor-pointer"
+            >
+              <ChevronLeft className="w-4 h-4 text-blue-700" />
+              <span>{backToSlide1Label}</span>
+            </button>
+
+            <span className="text-xs font-mono uppercase tracking-wider text-slate-600 font-semibold">
+              {slide2Label}
+            </span>
+          </div>
+
+          {(visitedSlides[1] || activeSlide === 1) && <WaitlistMessageBoard />}
+        </div>
+      ),
+    },
+  ];
+
   useEffect(() => {
-    const activeSlideEl =
-      activeSlide === 0 ? slide0Ref.current : slide1Ref.current;
+    const activeSlideEl = slideRefs.current[activeSlide];
     if (!activeSlideEl) {
       return;
     }
@@ -61,41 +109,35 @@ export default function WaitlistCarousel({
     return () => {
       observer.disconnect();
     };
-  }, [activeSlide]);
+  }, [activeSlide, resolvedSlides.length]);
 
   return (
     <div>
       {/* Carousel Top Controls / Pill Switcher */}
       <div
         role="group"
-        aria-label="Waitlist and Community View Switcher"
+        aria-label="Landing Page Section Switcher"
         className="flex items-center justify-center gap-2 mb-6"
       >
-        <div className="inline-flex items-center rounded-full bg-slate-200/80 p-1 border border-slate-300/60">
-          <button
-            type="button"
-            aria-pressed={activeSlide === 0}
-            onClick={() => selectSlide(0)}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition cursor-pointer ${
-              activeSlide === 0
-                ? "bg-white text-slate-900 shadow-2xs"
-                : "text-slate-700 hover:text-slate-900"
-            }`}
-          >
-            {slide1Label}
-          </button>
-          <button
-            type="button"
-            aria-pressed={activeSlide === 1}
-            onClick={() => selectSlide(1)}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition cursor-pointer ${
-              activeSlide === 1
-                ? "bg-white text-blue-700 shadow-2xs"
-                : "text-slate-700 hover:text-slate-900"
-            }`}
-          >
-            {slide2Label}
-          </button>
+        <div className="inline-flex flex-wrap items-center justify-center rounded-2xl sm:rounded-full bg-slate-200/80 p-1 border border-slate-300/60 gap-1">
+          {resolvedSlides.map((slide, idx) => {
+            const isActive = activeSlide === idx;
+            return (
+              <button
+                key={slide.id}
+                type="button"
+                aria-pressed={isActive}
+                onClick={() => selectSlide(idx)}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition cursor-pointer ${
+                  isActive
+                    ? "bg-white text-blue-700 shadow-2xs"
+                    : "text-slate-700 hover:text-slate-900"
+                }`}
+              >
+                {slide.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -112,71 +154,44 @@ export default function WaitlistCarousel({
           className="flex items-start transition-transform duration-500 ease-in-out"
           style={{ transform: `translateX(-${activeSlide * 100}%)` }}
         >
-          {/* ==================== SLIDE 1: PRIMARY CTA ==================== */}
-          <div
-            ref={slide0Ref}
-            aria-hidden={activeSlide !== 0}
-            inert={activeSlide !== 0 ? true : undefined}
-            className="w-full shrink-0 px-1 py-1 text-center"
-          >
-            {children}
-          </div>
-
-          {/* ==================== SLIDE 2: CONVERSATION / FEEDBACK ==================== */}
-          <div
-            ref={slide1Ref}
-            aria-hidden={activeSlide !== 1}
-            inert={activeSlide !== 1 ? true : undefined}
-            className="w-full shrink-0 px-1 py-1 text-left"
-          >
-            <div className="max-w-3xl mx-auto space-y-6">
-              <div className="flex items-center justify-between gap-3">
-                <button
-                  type="button"
-                  onClick={() => selectSlide(0)}
-                  className="px-3.5 py-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-xs font-bold text-slate-700 inline-flex items-center gap-1.5 transition cursor-pointer"
-                >
-                  <ChevronLeft className="w-4 h-4 text-blue-700" />
-                  <span>{backToSlide1Label}</span>
-                </button>
-
-                <span className="text-xs font-mono uppercase tracking-wider text-slate-600 font-semibold">
-                  {slide2Label}
-                </span>
+          {resolvedSlides.map((slide, idx) => {
+            const isActive = activeSlide === idx;
+            return (
+              <div
+                key={slide.id}
+                ref={(el) => {
+                  slideRefs.current[idx] = el;
+                }}
+                aria-hidden={!isActive}
+                inert={!isActive ? true : undefined}
+                className="w-full shrink-0 px-1 py-1"
+              >
+                {slide.content}
               </div>
-
-              {(slide2Visited || activeSlide === 1) && (
-                <WaitlistMessageBoard />
-              )}
-            </div>
-          </div>
+            );
+          })}
         </div>
       </div>
 
       {/* Carousel Dots */}
       <div className="mt-6 flex items-center justify-center gap-2">
-        <button
-          type="button"
-          aria-label={`Show ${slide1Label}`}
-          aria-pressed={activeSlide === 0}
-          onClick={() => selectSlide(0)}
-          className={`h-2.5 rounded-full transition-all cursor-pointer ${
-            activeSlide === 0
-              ? "w-7 bg-blue-700"
-              : "w-2.5 bg-slate-400 hover:bg-slate-500"
-          }`}
-        />
-        <button
-          type="button"
-          aria-label={`Show ${slide2Label}`}
-          aria-pressed={activeSlide === 1}
-          onClick={() => selectSlide(1)}
-          className={`h-2.5 rounded-full transition-all cursor-pointer ${
-            activeSlide === 1
-              ? "w-7 bg-blue-700"
-              : "w-2.5 bg-slate-400 hover:bg-slate-500"
-          }`}
-        />
+        {resolvedSlides.map((slide, idx) => {
+          const isActive = activeSlide === idx;
+          return (
+            <button
+              key={slide.id}
+              type="button"
+              aria-label={`Show ${slide.label}`}
+              aria-pressed={isActive}
+              onClick={() => selectSlide(idx)}
+              className={`h-2.5 rounded-full transition-all cursor-pointer ${
+                isActive
+                  ? "w-7 bg-blue-700"
+                  : "w-2.5 bg-slate-400 hover:bg-slate-500"
+              }`}
+            />
+          );
+        })}
       </div>
     </div>
   );
