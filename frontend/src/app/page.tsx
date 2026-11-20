@@ -697,7 +697,7 @@ export default function WaitlistLandingPage() {
       id: "contact",
       label: "Contact",
       content: (
-        <div className="max-w-3xl mx-auto space-y-5 text-left">
+        <div className="max-w-2xl mx-auto space-y-4 text-left">
           <div className="flex items-center justify-between gap-3">
             <button
               type="button"
@@ -709,7 +709,7 @@ export default function WaitlistLandingPage() {
             </button>
 
             <span className="text-xs font-mono uppercase tracking-wider text-slate-600 font-semibold">
-              Community Conversation &amp; Feedback
+              Direct Application Feedback
             </span>
           </div>
 

@@ -1,0 +1,33 @@
+{
+  "name": "@vote-social/contact-rep",
+  "version": "1.0.0",
+  "description": "Embeddable Canadian constituent-to-representative contact widget (Municipal, Regional, Provincial, and Federal) powered by Vote Social and Open North.",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "../../frontend/node_modules/.bin/tsc -p tsconfig.json",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "canada",
+    "civic-tech",
+    "elections",
+    "mp",
+    "mpp",
+    "mla",
+    "opennorth",
+    "representative",
+    "vote-social"
+  ],
+  "author": "Vote Social (https://vote-social.ca)",
+  "license": "MIT",
+  "homepage": "https://vote-social.ca/message_representative/",
+  "peerDependencies": {
+    "react": ">=18.0.0"
+  }
+}

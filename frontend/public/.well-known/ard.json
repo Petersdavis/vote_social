@@ -1,46 +1,70 @@
 {
-  "name": "Vote Social",
-  "description": "Independent, non-partisan civic social platform for Canadian elections connecting verified local voters, candidates, and community voting blocks across Municipal, Provincial, and Federal elections.",
-  "url": "https://vote-social.ca",
-  "llms_txt": "/llms.txt",
-  "llms_full_txt": "/llms-full.txt",
+  "specVersion": "1.0",
+  "host": {
+    "displayName": "Vote Social",
+    "identifier": "did:web:vote-social.ca",
+    "documentationUrl": "https://vote-social.ca/llms-full.txt"
+  },
   "entries": [
     {
-      "name": "Waitlist & Platform Preview",
-      "uri": "/",
-      "description": "Stage 1 early access waitlist, live neighborhood signup counters, and interactive previews of the 3 core Vote Social screens."
+      "identifier": "urn:air:vote-social.ca:web:platform-overview",
+      "displayName": "Vote Social — Waitlist & Civic Platform Preview",
+      "type": "text/html",
+      "url": "https://vote-social.ca/",
+      "description": "Independent, non-partisan Canadian civic social platform connecting verified local voters, candidates, and community voting blocks across Municipal, Provincial, and Federal elections.",
+      "representativeQueries": [
+        "what is Vote Social and how does it work for Canadian elections",
+        "compare local municipal provincial and federal election candidates in Canada",
+        "non-profit non-partisan civic engagement social platform for Canadian voters"
+      ]
     },
     {
-      "name": "Civic & Development Blog",
-      "uri": "/blog/",
-      "description": "Essays on local democracy, campaign equity, and why elections need public-interest digital infrastructure."
+      "identifier": "urn:air:vote-social.ca:web:message-representative",
+      "displayName": "Vote Social — Message Your Elected Representatives",
+      "type": "text/html",
+      "url": "https://vote-social.ca/message_representative/",
+      "description": "Lookup your Canadian Municipal, Regional, Provincial, and Federal political districts by 6-character postal code and send public or private constituent messages to your elected representatives.",
+      "representativeQueries": [
+        "find and email my Canadian MP MPP or city councillor by postal code",
+        "send a public open letter or private message to my local representative in Canada",
+        "lookup municipal ward provincial riding and federal riding by Canadian postal code"
+      ]
     },
     {
-      "name": "LLM Summary Documentation",
-      "uri": "/llms.txt",
-      "description": "Concise structured summary of Vote Social's mission, 3 core screens, and target user groups."
+      "identifier": "urn:air:vote-social.ca:web:civic-blog",
+      "displayName": "Vote Social — Civic & Engineering Blog",
+      "type": "text/html",
+      "url": "https://vote-social.ca/blog/",
+      "description": "Essays and engineering dispatches on local democracy, campaign equity, viral civic network effects, and why elections need public-interest digital infrastructure.",
+      "representativeQueries": [
+        "why local elections need public digital infrastructure in Canada",
+        "how non-profit civic tech platforms grow through network effects",
+        "Vote Social development blog and civic technology essays"
+      ]
     },
     {
-      "name": "LLM Full Documentation",
-      "uri": "/llms-full.txt",
-      "description": "Comprehensive reference covering Vote Social's Canadian federalist issue/policy model, persona capabilities, and privacy guarantees."
+      "identifier": "urn:air:vote-social.ca:doc:llms-summary",
+      "displayName": "Vote Social — LLM Summary Documentation (llms.txt)",
+      "type": "text/markdown",
+      "url": "https://vote-social.ca/llms.txt",
+      "description": "Concise structured markdown summary of Vote Social's mission, 3 core civic screens, and target user groups for AI agents and language models.",
+      "representativeQueries": [
+        "llms.txt summary of Vote Social Canadian civic platform",
+        "overview of Vote Social Election Summary Candidate Comparison and Voter Dashboard",
+        "quick summary of Vote Social features for voters candidates and organizations"
+      ]
+    },
+    {
+      "identifier": "urn:air:vote-social.ca:doc:llms-full",
+      "displayName": "Vote Social — LLM Full Reference Documentation (llms-full.txt)",
+      "type": "text/markdown",
+      "url": "https://vote-social.ca/llms-full.txt",
+      "description": "Comprehensive markdown reference covering Vote Social's Canadian federalist issue and policy model, persona capabilities, architecture, and privacy guarantees.",
+      "representativeQueries": [
+        "full technical and product documentation for Vote Social",
+        "how Vote Social models Canadian municipal provincial and federal election issues",
+        "Vote Social privacy guarantees verification and platform architecture"
+      ]
     }
-  ],
-  "documentation": [
-    "/llms.txt",
-    "/llms-full.txt"
-  ],
-  "project": {
-    "frontend": "Next.js (Static Export) + React + Tailwind CSS",
-    "backend": "Firebase Cloud Functions (2nd Gen)",
-    "data": "Cloud Firestore + Firebase Auth",
-    "hosting": "Firebase Hosting"
-  },
-  "capabilities": [
-    "instant postal-code to ballot resolution (Municipal, Provincial, Federal)",
-    "side-by-side candidate policy comparisons and roll-call voting records",
-    "verified bot-free neighborhood forums and on-the-record candidate Q&A",
-    "community organization voter guides and endorsed slates",
-    "personalized civic calendars and polling station locators"
   ]
 }

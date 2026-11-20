@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "declaration": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "typeRoots": ["../../frontend/node_modules/@types"],
+    "paths": {
+      "react": ["../../frontend/node_modules/@types/react"],
+      "react/jsx-runtime": ["../../frontend/node_modules/@types/react/jsx-runtime"]
+    }
+  },
+  "include": ["src"]
+}
