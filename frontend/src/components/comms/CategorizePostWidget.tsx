@@ -108,12 +108,6 @@ type WorkerPreloadResponse = {
   cache: CacheUsage;
 };
 
-type WorkerControlResponse =
-  | WorkerStatusResponse
-  | WorkerClearCacheResponse
-  | WorkerReloadResponse
-  | WorkerPreloadResponse;
-
 // Global preference shared with the auto-moderation widget via localStorage.
 // When a user clears the cache we remember that they do not want the model
 // auto-downloaded on the next mount (in this or any other widget).

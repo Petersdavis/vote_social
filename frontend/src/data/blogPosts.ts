@@ -38,7 +38,7 @@ To understand how that works, it helps to look at what an LLM actually produces 
 
 The encoder itself is an open-source model published on Hugging Face: [sentence-transformers/all-MiniLM-L6-v2](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2). It is a small, fast sentence-embedding model that maps text into a 384-dimensional space, and it runs entirely in the browser here via Transformers.js—no server round-trip required.
 
-### Clustering Issues into Categories Without the $O(N^2)$ Trap
+### Clustering Issues into Categories
 
 If comparing two posts takes nanoseconds, it is tempting to simply compare every post against every other post to let clusters emerge organically. The catch is that all-pairs comparison scales quadratically—$O(N^2)$. Comparing 500 posts requires ~125,000 checks (trivial), but 100,000 posts requires nearly **5 billion** pairwise comparisons.
 

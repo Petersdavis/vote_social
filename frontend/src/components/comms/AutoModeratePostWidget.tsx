@@ -83,12 +83,6 @@ type WorkerPreloadResponse = {
   cache: CacheUsage;
 };
 
-type WorkerControlResponse =
-  | WorkerStatusResponse
-  | WorkerClearCacheResponse
-  | WorkerReloadResponse
-  | WorkerPreloadResponse;
-
 function formatBytes(bytes: number) {
   if (!bytes) return "0 B";
   const units = ["B", "KB", "MB", "GB"];
