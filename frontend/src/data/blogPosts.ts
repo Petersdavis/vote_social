@@ -14,6 +14,54 @@ export interface BlogPost {
 
 export const BLOG_POSTS: BlogPost[] = [
   {
+    slug: "solving-semantic-categorization-with-vectors",
+    title: "Solving Semantic Categorization with Vectors, a Byproduct of LLMs",
+    subtitle:
+      "How Vote Social clusters civic posts into topics and screens toxic content in the browser using 384-dimensional embeddings and cosine similarity—no generative LLM call required.",
+    publishedAt: "2026-11-26",
+    author: {
+      name: "Vote Social Editorial",
+      role: "Engineering & Product",
+    },
+    readingTimeMinutes: 7,
+    tags: [
+      "Embeddings",
+      "Vector Search",
+      "Content Moderation",
+      "Product Engineering",
+    ],
+    markdown: `**Jump to a live demo:** [Demo: Semantic categorization](#demo-semantic-categorization) · [Demo: Auto-moderation](#demo-auto-moderation)
+
+When building **Vote Social**, we ran into two fundamental problems that show up in almost any civic or community platform. First, we want to semantically cluster user posts so people can filter and browse issues by topic—without forcing users to manually apply tags that end up inconsistent, sparse, or gamed. Second, we want to automatically moderate incoming content before it ever reaches a human reviewer by checking whether a new submission closely resembles previously reported or policy-violating posts. Solving both unlocks cleaner discovery, faster triage, and lower moderation overhead. Better yet, the math behind modern language models makes this computationally cheap enough that we can run the heavy lifting directly on the client's frontend before a post even hits our servers.
+
+To understand how that works, it helps to look at what an LLM actually produces under the hood before it ever generates a word. When a transformer model processes a string of text to predict output tokens, it first converts that text into an internal representation: an **N-dimensional vector** (a list of $N$ floating-point numbers, such as 384 or 768 values). You can think of this geometric space loosely like the human brain storing related concepts in proximate regions—ideas about *grocery inflation* and *rising food costs* map to nearby coordinates in that N-dimensional space, even if they share zero exact keywords. Using a compact, distilled encoder model (around 23 MB quantized), converting a 200-character post into a 384-dimensional vector takes only ~5–25 milliseconds on a standard CPU and produces a payload of just **1.5 KB** (\`Float32Array(384)\`). Once normalized to unit length, measuring the semantic distance between any two posts collapses into a single dot product—384 multiply-adds that execute in nanoseconds.
+
+The encoder itself is an open-source model published on Hugging Face: [sentence-transformers/all-MiniLM-L6-v2](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2). It is a small, fast sentence-embedding model that maps text into a 384-dimensional space, and it runs entirely in the browser here via Transformers.js—no server round-trip required.
+
+### Clustering Issues into Categories Without the $O(N^2)$ Trap
+
+If comparing two posts takes nanoseconds, it is tempting to simply compare every post against every other post to let clusters emerge organically. The catch is that all-pairs comparison scales quadratically—$O(N^2)$. Comparing 500 posts requires ~125,000 checks (trivial), but 100,000 posts requires nearly **5 billion** pairwise comparisons.
+
+To avoid paying that $O(N^2)$ cost, we introduce a bounded hierarchy of **categories**. Instead of comparing a new post against every historical post, we first compare its vector against a fixed set of 16 top-level civic anchors (such as *Cost of Living & Inflation*, *Housing & Urban Development*, or *Healthcare & Mental Health*)—just 16 dot products. Each top-level category is represented by the averaged vector of several neutral seed phrases so opposing viewpoints on the same issue route to the same bucket. Once a post lands in a top-level category, it only needs to be compared against the sub-cluster centroids inside that specific branch, keeping clustering fast and incremental as new posts arrive.
+
+<div id="demo-semantic-categorization"></div>
+
+<CategorizationWidget />
+
+### Auto-Moderating a Forum with Nearest-Neighbor Search
+
+The same vector geometry powers pre-human moderation. Rather than maintaining brittle keyword blocklists that users easily bypass with synonyms or rephrasing, we maintain an index of embeddings from previously reported and confirmed policy-violating posts. When a user drafts or submits a new post, we query its vector against that violation index. If its cosine similarity crosses a high threshold (for example, $\\ge 0.88$), the system can automatically hold the post for review before publishing; moderate matches ($\\approx 0.75\\text{–}0.88$) can be queued for human moderators with the closest historical violation attached as context. (To avoid false positives when a constructive post merely *discusses* a sensitive topic, we also compare against previously cleared false-positives and only trigger an auto-hold when a post is measurably closer to the violation set.)
+
+At small scale, scanning a few thousand violation vectors directly in memory takes less than a millisecond. As that index grows into the hundreds of thousands or millions, **vector databases** (like \`pgvector\`, Qdrant, or Milvus) avoid brute-force scans using Approximate Nearest Neighbor (ANN) indexes. While classic spatial trees like **kd-trees** work well in 2D or 3D, they break down in 384+ dimensions due to the "curse of dimensionality." Instead, modern vector databases rely on structures like **HNSW** (*Hierarchical Navigable Small World* graphs—a multi-layer proximity graph that hops from coarse regions down to exact neighbors in logarithmic time) or **IVF** (*Inverted File* indexes, which partition vectors into centroid buckets and only search the closest clusters).
+
+<div id="demo-auto-moderation"></div>
+
+<AutoModerationWidget />
+
+By treating embeddings as a lightweight data structure rather than calling a full generative LLM for every classification or moderation check, we get real-time topic routing, resilient spam and abuse filtering, and a dramatically lighter server footprint—turning what used to be an expensive backend AI pipeline into fast geometry.
+`,
+  },
+  {
     slug: "viral-to-survive",
     title: "Viral to Survive",
     subtitle:
