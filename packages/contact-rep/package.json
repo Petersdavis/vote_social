@@ -1,16 +1,27 @@
 {
   "name": "@vote-social/contact-rep",
-  "version": "1.0.0",
-  "description": "Embeddable Canadian constituent-to-representative contact widget (Municipal, Regional, Provincial, and Federal) powered by Vote Social and Open North.",
-  "main": "./dist/index.js",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "version": "1.0.1",
+  "description": "Embeddable Canadian constituent-to-representative contact widget (Municipal, Regional, Provincial, and Federal) powered by Vote Social (https://vote-social.ca) and Open North.",
+  "main": "./dist/cjs/index.cjs",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/esm/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/esm/index.d.ts",
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.cjs",
+      "default": "./dist/esm/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "sideEffects": false,
   "files": [
     "dist",
     "README.md"
   ],
   "scripts": {
-    "build": "../../frontend/node_modules/.bin/tsc -p tsconfig.json",
+    "clean": "rm -rf dist",
+    "build": "npm run clean && ../../frontend/node_modules/.bin/tsc -p tsconfig.json && ../../frontend/node_modules/.bin/tsc -p tsconfig.cjs.json && node scripts/finalize-dist.mjs",
     "prepublishOnly": "npm run build"
   },
   "keywords": [
@@ -27,6 +38,17 @@
   "author": "Vote Social (https://vote-social.ca)",
   "license": "MIT",
   "homepage": "https://vote-social.ca/message_representative/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Petersdavis/vote_social.git",
+    "directory": "packages/contact-rep"
+  },
+  "bugs": {
+    "url": "https://github.com/Petersdavis/vote_social/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "peerDependencies": {
     "react": ">=18.0.0"
   }

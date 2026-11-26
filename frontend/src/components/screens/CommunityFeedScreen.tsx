@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
@@ -275,13 +276,23 @@ export default function CommunityFeedScreen({
                       <div className="flex items-center gap-3">
                         <div className="relative">
                           <div
-                            className={`w-11 h-11 rounded-xl ${candidate.avatarBg} text-white font-bold text-sm flex items-center justify-center shadow-2xs shrink-0 ${
+                            className={`w-11 h-11 rounded-xl overflow-hidden ${candidate.avatarBg} text-white font-bold text-sm flex items-center justify-center shadow-2xs shrink-0 ${
                               isSelectedCandidate
                                 ? "ring-2 ring-offset-2 ring-blue-600 md:ring-0 md:ring-offset-0"
                                 : "md:opacity-100"
                             }`}
                           >
-                            {candidate.initials}
+                            {candidate.avatarImage ? (
+                              <Image
+                                src={candidate.avatarImage}
+                                alt={candidate.name}
+                                width={44}
+                                height={44}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              candidate.initials
+                            )}
                           </div>
                           {candidate.userPledged && (
                             <span
@@ -317,7 +328,7 @@ export default function CommunityFeedScreen({
                         </span>
                       ) : (
                         <span className="hidden md:inline-flex font-mono text-[11px] font-bold px-2.5 py-1 rounded-lg bg-slate-100 text-slate-800 border border-slate-200 shrink-0">
-                          {totalAlignedVoters.toLocaleString()} Total Aligned
+                          {totalAlignedVoters.toLocaleString()} Supporters
                         </span>
                       )}
                     </div>
@@ -363,7 +374,7 @@ export default function CommunityFeedScreen({
                     {/* Section 2: Badges with Organisational Supports + Unaffiliated Voters Badge (Hidden on mobile selectable tabs) */}
                     <div className="hidden md:block pt-3 border-t border-slate-100">
                       <span className="text-[10px] font-mono uppercase tracking-wider text-slate-600 font-bold block mb-1.5">
-                        Organizational Supports & Unaffiliated Voters
+                        Endorsements
                       </span>
                       <div className="flex flex-wrap gap-1.5">
                         {candidate.orgSupports.map((org) => (
@@ -415,9 +426,19 @@ export default function CommunityFeedScreen({
                 <div className="flex items-start justify-between gap-2 pb-3 border-b border-slate-100">
                   <div className="flex items-center gap-3 min-w-0">
                     <div
-                      className={`w-11 h-11 rounded-xl ${activeCandidate.avatarBg} text-white font-bold text-sm flex items-center justify-center shadow-2xs shrink-0`}
+                      className={`w-11 h-11 rounded-xl overflow-hidden ${activeCandidate.avatarBg} text-white font-bold text-sm flex items-center justify-center shadow-2xs shrink-0`}
                     >
-                      {activeCandidate.initials}
+                      {activeCandidate.avatarImage ? (
+                        <Image
+                          src={activeCandidate.avatarImage}
+                          alt={activeCandidate.name}
+                          width={44}
+                          height={44}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        activeCandidate.initials
+                      )}
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
@@ -450,7 +471,7 @@ export default function CommunityFeedScreen({
                       </span>
                     )}
                     <span className="font-mono text-[11px] font-bold px-2.5 py-1 rounded-lg bg-slate-100 text-slate-800 border border-slate-200">
-                      {totalAlignedVoters.toLocaleString()} Total Aligned
+                      {totalAlignedVoters.toLocaleString()} Supporters
                     </span>
                   </div>
                 </div>
@@ -495,7 +516,7 @@ export default function CommunityFeedScreen({
                 {/* Selected Candidate Affiliations (Organizational Supports & Unaffiliated Voters) */}
                 <div className="pt-3 border-t border-slate-100">
                   <span className="text-[10px] font-mono uppercase tracking-wider text-slate-600 font-bold block mb-1.5">
-                    Organizational Supports & Unaffiliated Voters
+                    Endorsements
                   </span>
                   <div className="flex flex-wrap gap-1.5">
                     {activeCandidate.orgSupports.map((org) => (

@@ -141,6 +141,7 @@ export interface CandidateProfile {
   verified: boolean;
   tagline: string;
   avatarBg: string;
+  avatarImage?: string;
   pledgeCountInWard: number;
   pledgeCountInPostal: number;
   independentVotersCount: number;
@@ -793,6 +794,7 @@ export const CANDIDATES: CandidateProfile[] = [
     verified: true,
     tagline: "Urban Planner & Transit Advocate building safer streets and Missing Middle housing.",
     avatarBg: "bg-blue-700",
+    avatarImage: "/assets/img/stock_candidates/maya.png",
     pledgeCountInWard: 1640,
     pledgeCountInPostal: 214,
     independentVotersCount: 485,
@@ -963,6 +965,7 @@ export const CANDIDATES: CandidateProfile[] = [
     verified: true,
     tagline: "Small Business Leader & CPA focused on core road maintenance, fiscal discipline, and balanced growth.",
     avatarBg: "bg-amber-800",
+    avatarImage: "/assets/img/stock_candidates/david.png",
     pledgeCountInWard: 1210,
     pledgeCountInPostal: 112,
     independentVotersCount: 590,
@@ -1081,6 +1084,7 @@ export const CANDIDATES: CandidateProfile[] = [
     verified: true,
     tagline: "Housing Rights Lawyer & Climate Organizer fighting for tenant protections, green infrastructure, and fare-free transit.",
     avatarBg: "bg-emerald-700",
+    avatarImage: "/assets/img/stock_candidates/priya.png",
     pledgeCountInWard: 1040,
     pledgeCountInPostal: 86,
     independentVotersCount: 315,

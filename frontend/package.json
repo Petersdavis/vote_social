@@ -9,6 +9,10 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@huggingface/transformers": "^4.3.2",
+    "d3-force": "^3.0.1",
+    "d3-selection": "^3.0.1",
+    "d3-zoom": "^3.0.1",
     "firebase": "^13.2.0",
     "lucide-react": "^1.70.0",
     "mermaid": "^12.3.0",

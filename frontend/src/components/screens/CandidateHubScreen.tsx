@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
 import { useParams } from "next/navigation";
 import {
   Bell,
@@ -187,13 +188,23 @@ export default function CandidateHubScreen({
                       <div className="flex items-center gap-3">
                         <div className="relative">
                           <div
-                            className={`w-11 h-11 rounded-xl ${candidate.avatarBg} text-white font-bold text-sm flex items-center justify-center shadow-xs shrink-0 ${
+                            className={`w-11 h-11 rounded-xl overflow-hidden ${candidate.avatarBg} text-white font-bold text-sm flex items-center justify-center shadow-xs shrink-0 ${
                               isSelected
                                 ? "ring-2 ring-offset-2 ring-blue-600 md:ring-0 md:ring-offset-0"
                                 : "md:opacity-100"
                             }`}
                           >
-                            {candidate.initials}
+                            {candidate.avatarImage ? (
+                              <Image
+                                src={candidate.avatarImage}
+                                alt={candidate.name}
+                                width={44}
+                                height={44}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              candidate.initials
+                            )}
                           </div>
                           {isPledged && (
                             <span
@@ -249,7 +260,7 @@ export default function CandidateHubScreen({
                     {/* Organisation Badges + Unaffiliated Voter# Badge (Hidden on mobile selectable tabs) */}
                     <div className="hidden md:block pt-3 border-t border-slate-200/70">
                       <span className="text-[10px] font-mono uppercase tracking-wider text-slate-600 font-bold block mb-1.5">
-                        Organizations & Unaffiliated Voters
+                        Endorsements
                       </span>
                       <div className="flex flex-wrap gap-1.5">
                         {candidate.orgSupports.map((org) => (
@@ -308,9 +319,19 @@ export default function CandidateHubScreen({
             <div className="pb-5 mb-5 border-b border-slate-200/80 space-y-4">
               <div className="flex items-start gap-3.5">
                 <div
-                  className={`w-13 h-13 rounded-2xl ${selectedCandidate.avatarBg} text-white font-bold text-lg flex items-center justify-center shadow-xs shrink-0`}
+                  className={`w-13 h-13 rounded-2xl overflow-hidden ${selectedCandidate.avatarBg} text-white font-bold text-lg flex items-center justify-center shadow-xs shrink-0`}
                 >
-                  {selectedCandidate.initials}
+                  {selectedCandidate.avatarImage ? (
+                    <Image
+                      src={selectedCandidate.avatarImage}
+                      alt={selectedCandidate.name}
+                      width={52}
+                      height={52}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    selectedCandidate.initials
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -440,7 +461,7 @@ export default function CandidateHubScreen({
                 {/* Affiliations: Organizations & Unaffiliated Voters */}
                 <div>
                   <span className="text-[10px] font-mono uppercase tracking-wider text-slate-600 font-bold block mb-1.5">
-                    Organizations & Unaffiliated Voters
+                    Endorsements
                   </span>
                   <div className="flex flex-wrap gap-1.5">
                     {selectedCandidate.orgSupports.map((org) => (
@@ -587,14 +608,9 @@ export default function CandidateHubScreen({
               {/* RIGHT 5 COLUMNS: Peer Voter Testimonials & Direct Q&A (Shifted Up) */}
               <div className="lg:col-span-5 bg-slate-50/70 rounded-xl border border-slate-200/80 p-4 space-y-4">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <span className="text-[11px] font-mono uppercase tracking-wider text-blue-700 font-bold block">
-                      Neighbor Social Proof
-                    </span>
-                    <h3 className="text-base font-bold text-slate-900">
-                      Peer Voter Testimonials & Direct Q&A
-                    </h3>
-                  </div>
+                  <h3 className="text-base font-bold text-slate-900">
+                    Testimonials
+                  </h3>
                   <MessageSquareQuote className="w-5 h-5 text-blue-700 shrink-0" />
                 </div>
 
